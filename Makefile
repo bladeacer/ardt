@@ -38,26 +38,23 @@ release:
 	@if [ -n "$(VERSION)" ]; then \
 		version="$(VERSION)"; \
 		sed -i 's/^version = ".*"/version = "'$$version'"/' alire.toml; \
-		commit=$$(git rev-parse HEAD); \
-		index_file="index/ad/ada_crdt/ada_crdt-$$version.toml"; \
-		if [ ! -f "$$index_file" ]; then \
-			cp index/ad/ada_crdt/ada_crdt-0.1.0-dev.toml "$$index_file"; \
-		fi; \
-		sed -i 's/^version = ".*"/version = "'$$version'"/' "$$index_file"; \
-		sed -i 's/^commit = ".*"/commit = "'$$commit'"/' "$$index_file"; \
-		git add alire.toml "$$index_file"; \
-		git commit -m "Release $$version"; \
-		git tag -a "v$$version" -m "Release $$version"; \
-		echo "Tagged v$$version at $$commit"; \
+		git add alire.toml; \
 	else \
-		if ! git diff --quiet HEAD; then echo "Error: working tree not clean"; exit 1; fi; \
 		version=$$(sed -n 's/^version = "\(.*\)"/\1/p' alire.toml); \
-		commit=$$(git rev-parse HEAD); \
-		git tag -a "v$$version" -m "Release $$version"; \
-		echo "Tagged v$$version at $$commit"; \
 	fi; \
-	git push origin --tags; \
-	echo "Pushed all tags to origin"
+	commit=$$(git rev-parse HEAD); \
+	index_file="index/ad/ada_crdt/ada_crdt-$$version.toml"; \
+	if [ ! -f "$$index_file" ]; then \
+		cp index/ad/ada_crdt/ada_crdt-0.1.0-dev.toml "$$index_file"; \
+	fi; \
+	sed -i 's/^version = ".*"/version = "'$$version'"/' "$$index_file"; \
+	sed -i 's/^commit = ".*"/commit = "'$$commit'"/' "$$index_file"; \
+	git add -A; \
+	git commit -m "Release $$version" || true; \
+	git tag -a "v$$version" -m "Release $$version" || true; \
+	echo "Tagged v$$version at $$commit"; \
+	git push origin && git push origin --tags; \
+	echo "Pushed commit and all tags to origin"
 
 clean:
 	alr clean
