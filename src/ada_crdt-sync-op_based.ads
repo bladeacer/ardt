@@ -1,14 +1,16 @@
+--  Operation-Based (CmRDT) sync engine.
+--  Replicas broadcast granular, immutable mutation events.
+--  Downstream operations must be applied exactly once.
+--
+--  Network trait: Hyper-low bandwidth consumption, ideal for
+--  ordered delivery channels (WebSockets, TCP/TLS streams).
 with Ada_CRDT.Core;
 
 package Ada_CRDT.Sync.Op_Based is
 
-   -- Operation-based (CmRDT) sync engine.
-   -- Replicas broadcast granular mutation events.
-   -- Downstream operations must be applied exactly once.
-
-   -- Operation log entry
    type Op_Kind is (Op_Insert, Op_Delete, Op_Increment, Op_Decrement);
 
+   --  A single mutation operation for replication.
    type Operation (Kind : Op_Kind := Op_Insert) is record
       Seq     : Natural;
       Node    : Core.Replica_Id;
@@ -23,22 +25,22 @@ package Ada_CRDT.Sync.Op_Based is
       end case;
    end record;
 
-   -- Operation log with bounded capacity
+   --  Bounded operation log for buffering outgoing operations.
    type Op_Log (Capacity : Positive) is private;
 
-   -- Append an operation to the log
+   --  Append an operation to the log.
    procedure Append (Log : in out Op_Log; Op : Operation);
 
-   -- How many ops stored
+   --  Number of unacknowledged operations.
    function Size (Log : Op_Log) return Natural;
 
-   -- Get operation at index
+   --  Get operation at index (1-based, excluding GC'd).
    function Get (Log : Op_Log; Index : Positive) return Operation;
 
-   -- Acknowledge ops up to a given sequence number (for GC)
+   --  Mark operations up to Seq as acknowledged (ready for GC).
    procedure Acknowledge (Log : in out Op_Log; Up_To_Seq : Natural);
 
-   -- Garbage collect acknowledged ops
+   --  Compact the log, physically removing acknowledged operations.
    procedure Compact (Log : in out Op_Log);
 
 private

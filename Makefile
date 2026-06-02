@@ -1,4 +1,4 @@
-.PHONY: help all build run test prove clean
+.PHONY: help all build run test prove doc clean
 
 .DEFAULT_GOAL := help
 
@@ -11,6 +11,7 @@ help:
 	@echo '  run     Build and run tests'
 	@echo '  test    Alias for run'
 	@echo '  prove   Run SPARK proofs (alr gnatprove)'
+	@echo '  doc     Generate HTML documentation (gnatdoc)'
 	@echo '  clean   Remove build artifacts'
 	@echo '  help    Show this message'
 
@@ -25,6 +26,9 @@ test: run
 prove:
 	alr gnatprove
 
+doc:
+	gnatdoc -P ada_crdt.gpr --output-dir=docs --front-end
+
 clean:
 	alr clean
-	rm -rf obj/
+	rm -rf obj/ docs/

@@ -1,3 +1,13 @@
+--  Yjs-style splitting block RGA engine.
+--  Groups contiguous characters written by the same client into
+--  memory blocks (size Max_Stride). Structural splitting splits
+--  a block when an insert targets its middle, then stitches the
+--  new block in between.
+--
+--  Uses a pre-allocated contiguous array of blocks (memory arena)
+--  to avoid heap fragmentation.
+--
+--  Industry equivalence: Yjs YATA algorithm.
 with Ada.Streams;
 with Ada_CRDT.Core;
 
@@ -17,51 +27,62 @@ is
 
    type Element_Array is array (Positive range <>) of Element_Type;
 
+   type RGA (Item_Capacity : Positive) is private;
+
+   --  Standard Ada iterator support
+   --  Usage:
+   --    Pos := First (R);
+   --    while Has_Element (R, Pos) loop
+   --       E := Element (R, Pos);
+   --       Next (R, Pos);
+   --    end loop;
+
    type Cursor is private;
 
    function Has_Element (Position : Cursor) return Boolean;
+   function Has_Element (Container : RGA; Position : Cursor) return Boolean;
+   function First (Container : RGA) return Cursor;
+   procedure Next (Container : RGA; Position : in out Cursor);
+   function Element (Container : RGA; Position : Cursor) return Element_Type;
 
-   type Constant_Reference_Type (Element : not null access constant Element_Type) is private;
-
-   type RGA (Item_Capacity : Positive) is private;
-
-   -- Count of items in the linked list
+   --  Number of internal storage items (linked list nodes).
    function Count (R : RGA) return Natural;
 
-   -- Total elements across all items (including tombstones)
+   --  Total visible + tombstoned elements.
    function Size (R : RGA) return Natural;
 
    function Length (R : RGA) return Natural is (Size (R));
 
-   -- Get element at physical position (1-indexed item element position)
+   --  Get element at physical position (1-indexed).
    function Get (R : RGA; Pos : Positive) return Element_Type;
 
-   -- Insert single element at physical position
+   --  Insert single element at physical position.
    procedure Insert (R     : in out RGA;
                      Pos   : Positive;
                      Id    : Node_Id;
                      Value : Element_Type);
 
-   -- Insert multiple contiguous elements as a single Item block
+   --  Insert multiple contiguous elements as a single Item block.
    procedure Insert_Bulk (R      : in out RGA;
-                           Pos    : Positive;
-                           Id     : Node_Id;
-                           Values : Element_Array);
+                          Pos    : Positive;
+                          Id     : Node_Id;
+                          Values : Element_Array);
 
-   -- Delete element at physical position (tombstone)
+   --  Tombstone-delete element at physical position.
    procedure Delete (R   : in out RGA;
                      Pos : Positive);
 
-   -- Delete item starting with the given Node_Id
+   --  Tombstone-delete the item with the given Node_Id.
    procedure Delete_Node (R : in out RGA; Id : Node_Id);
 
-   -- Merge all source items into target
+   --  Convergent merge: insert all Source items not in Target,
+   --  preserving causal order by Node_Id.
    procedure Merge (Target : in out RGA;
                     Source : RGA);
 
    function "=" (Left, Right : RGA) return Boolean;
 
-   -- === State Vector / Delta Sync ===
+   --  State Vector / Delta Sync
 
    type Replica_Max_Seq is record
       Replica : Core.Replica_Id;
@@ -72,50 +93,38 @@ is
 
    procedure Compute_State_Vector
      (R     : RGA;
-       SV    : out Replica_Max_Seq_Array;
-       Count : out Natural);
+      SV    : out Replica_Max_Seq_Array;
+      Count : out Natural);
 
    procedure Sync_Delta
      (Target    : in out RGA;
-       Source    : RGA;
-       Remote_SV : Replica_Max_Seq_Array;
-       SV_Count  : Natural);
+      Source    : RGA;
+      Remote_SV : Replica_Max_Seq_Array;
+      SV_Count  : Natural);
 
-   -- === Tombstone Garbage Collection ===
+   --  Tombstone Garbage Collection
 
+   --  Physically remove all tombstoned items, reclaiming slots.
    procedure Compact (R : in out RGA);
 
-   -- === Stream Serialization with Protocol Version ===
+   --  Stream Serialization with Protocol Version
+   --
+   --  Wire format: [Protocol_Version : Natural] [Total : Natural]
+   --    [Num_Items : Natural] [Item ...]
+   --  Each Item: [Node_Id] [Len : Natural] [Deleted : Boolean]
+   --    [Content : Element_Type array of length Len]
 
-   -- Wire format: [Protocol_Version : Natural] [Total : Natural]
-   --   [Num_Items : Natural] [Item ...]
-   -- Each Item: [Node_Id] [Len : Natural] [Deleted : Boolean]
-   --   [Content : Element_Type array of length Len]
+   procedure Write_RGA
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : RGA);
 
-   procedure Write_RGA (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-                         Item   : RGA);
-
-   procedure Read_RGA  (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
-                         Item   : out RGA);
-
-   function Iterate (Container : aliased RGA) return Cursor;
-
-   function Constant_Ref (Container : aliased in RGA; Position : Cursor)
-      return Constant_Reference_Type;
-
-   procedure Next (Position : in out Cursor);
+   procedure Read_RGA
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : out RGA);
 
 private
 
-   type Cursor is record
-      Container : access constant RGA;
-      Pos       : Natural := 0;
-   end record;
-
-   type Constant_Reference_Type (Element : not null access constant Element_Type) is
-      null record;
-
-   type Element_Store is array (1 .. Max_Stride) of aliased Element_Type;
+   type Element_Store is array (1 .. Max_Stride) of Element_Type;
 
    type RGA_Item is record
       Id      : Node_Id;
@@ -125,7 +134,12 @@ private
       Next    : Natural := 0;
    end record;
 
-   type Item_Array is array (Positive range <>) of aliased RGA_Item;
+   type Item_Array is array (Positive range <>) of RGA_Item;
+
+   type Cursor is record
+      Total : Natural := 0;
+      Pos   : Natural := 0;
+   end record;
 
    type RGA (Item_Capacity : Positive) is record
       Items   : Item_Array (1 .. Item_Capacity);

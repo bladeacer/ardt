@@ -1,3 +1,10 @@
+--  Fugue-style tree-based RGA engine.
+--  Replaces flat linked lists with a binary search tree hierarchy
+--  designed to eliminate string interleaving (the "zipper" bug
+--  when users type concurrently at the same position).
+--
+--  Node_Id includes a Depth component for tree positioning.
+--  In-order traversal produces the document sequence.
 with Ada.Streams;
 with Ada_CRDT.Core;
 
@@ -14,39 +21,53 @@ is
       Depth   : Natural := 0;
    end record;
 
+   type Element_Array is array (Positive range <>) of Element_Type;
+
    type RGA (Capacity : Positive) is private;
 
-   -- Iterator support
+   --  Standard Ada iterator support
    type Cursor is private;
+
    function Has_Element (Position : Cursor) return Boolean;
-   type Constant_Reference_Type (Element : not null access constant Element_Type) is private;
+   function Has_Element (Container : RGA; Position : Cursor) return Boolean;
+   function First (Container : RGA) return Cursor;
+   procedure Next (Container : RGA; Position : in out Cursor);
+   function Element (Container : RGA; Position : Cursor) return Element_Type;
 
-   function Iterate (Container : aliased RGA) return Cursor;
-   function Constant_Ref (Container : aliased in RGA; Position : Cursor)
-      return Constant_Reference_Type;
-
-   type RGA (Capacity : Positive) is private with
-     Constant_Indexing => Constant_Ref,
-     Default_Iterator => Iterate,
-     Iterator_Element => Element_Type;
-
-   -- Core operations
    function Count (R : RGA) return Natural;
    function Size (R : RGA) return Natural;
    function Length (R : RGA) return Natural is (Size (R));
    function Get (R : RGA; Pos : Positive) return Element_Type;
 
-   procedure Insert (R : in out RGA; Pos : Positive; Id : Node_Id; Value : Element_Type);
-   procedure Insert_Bulk (R : in out RGA; Pos : Positive; Id : Node_Id; Values : array of Element_Type);
-   procedure Delete (R : in out RGA; Pos : Positive);
+   procedure Insert (R     : in out RGA;
+                     Pos   : Positive;
+                     Id    : Node_Id;
+                     Value : Element_Type);
+
+   procedure Insert_Bulk (R      : in out RGA;
+                          Pos    : Positive;
+                          Id     : Node_Id;
+                          Values : Element_Array);
+
+   procedure Delete (R   : in out RGA;
+                     Pos : Positive);
+
    procedure Delete_Node (R : in out RGA; Id : Node_Id);
-   procedure Merge (Target : in out RGA; Source : RGA);
+
+   procedure Merge (Target : in out RGA;
+                    Source : RGA);
+
    function "=" (Left, Right : RGA) return Boolean;
 
    procedure Compact (R : in out RGA);
 
-   procedure Write_RGA (Stream : not null access Ada.Streams.Root_Stream_Type'Class; Item : RGA);
-   procedure Read_RGA (Stream : not null access Ada.Streams.Root_Stream_Type'Class; Item : out RGA);
+   procedure Write_RGA
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : RGA);
+
+   procedure Read_RGA
+     (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
+      Item   : out RGA);
 
 private
 
@@ -62,12 +83,9 @@ private
    type Item_Array is array (Positive range <>) of RGA_Item;
 
    type Cursor is record
-      Container : access constant RGA;
-      Pos       : Natural := 0;
+      Total : Natural := 0;
+      Pos   : Natural := 0;
    end record;
-
-   type Constant_Reference_Type (Element : not null access constant Element_Type) is
-      null record;
 
    type RGA (Capacity : Positive) is record
       Items   : Item_Array (1 .. Capacity);

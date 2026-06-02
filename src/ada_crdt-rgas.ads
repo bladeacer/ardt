@@ -1,3 +1,6 @@
+--  Container for managing multiple RGA instances.
+--  Provides Append to collect replicas and Merge_All to converge
+--  all into the first entry.
 with Ada_CRDT.Rga;
 
 generic
@@ -22,12 +25,16 @@ is
 
    type RGAs (Count : Positive) is private;
 
+   --  Number of RGA entries currently stored.
    function Size (RS : RGAs) return Natural;
 
+   --  Get the RGA at the given index (1-based).
    function Get (RS : RGAs; Index : Positive) return RGA_Entry;
 
+   --  Append an RGA to the collection.
    procedure Append (RS : in out RGAs; R : RGA_Entry);
 
+   --  Merge all RGAs into the first entry (index 1).
    procedure Merge_All (RS : in out RGAs);
 
 private

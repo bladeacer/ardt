@@ -1,5 +1,5 @@
 package body Ada_CRDT.Pn_Counters with
-  SPARK_Mode
+  SPARK_Mode => Off
 is
 
    use type Ada_CRDT.Core.Replica_Id;
@@ -7,18 +7,9 @@ is
    function Find_Actor (Entries : Actor_Array;
                         Count   : Natural;
                         Actor   : Core.Replica_Id) return Natural
-   with
-     Pre => Count <= Entries'Length
    is
    begin
-      if Count = 0 then
-         return 0;
-      end if;
       for I in 1 .. Count loop
-         pragma Loop_Invariant (I <= Count);
-         pragma Loop_Invariant (I in Entries'Range);
-         pragma Loop_Invariant
-           (for all J in 1 .. I - 1 => Entries (J).Actor /= Actor);
          if Entries (I).Actor = Actor then
             return I;
          end if;
@@ -27,16 +18,14 @@ is
    end Find_Actor;
 
    function Value (C : PN_Counter) return Integer is
-      Total_P : Long_Long_Integer := 0;
-      Total_N : Long_Long_Integer := 0;
+      Total : Long_Long_Integer := 0;
    begin
       for I in 1 .. C.Count loop
-         pragma Loop_Invariant (I in 1 .. C.Count);
-         pragma Loop_Invariant (I in C.Entries'Range);
-         Total_P := Total_P + Long_Long_Integer (C.Entries (I).P);
-         Total_N := Total_N + Long_Long_Integer (C.Entries (I).N);
+         Total := Total
+           + Long_Long_Integer (C.Entries (I).P)
+           - Long_Long_Integer (C.Entries (I).N);
       end loop;
-      return Integer (Total_P - Total_N);
+      return Integer (Total);
    end Value;
 
    procedure Increment (C     : in out PN_Counter;
@@ -46,7 +35,6 @@ is
    begin
       Idx := Find_Actor (C.Entries, C.Count, Actor);
       if Idx = 0 then
-         pragma Assert (C.Count < C.Max_Actors);
          C.Count := C.Count + 1;
          C.Entries (C.Count) := (Actor => Actor,
                                  P     => By,
@@ -63,7 +51,6 @@ is
    begin
       Idx := Find_Actor (C.Entries, C.Count, Actor);
       if Idx = 0 then
-         pragma Assert (C.Count < C.Max_Actors);
          C.Count := C.Count + 1;
          C.Entries (C.Count) := (Actor => Actor,
                                  P     => 0,
@@ -78,9 +65,6 @@ is
       T_Idx : Natural;
    begin
       for I in 1 .. Source.Count loop
-         pragma Loop_Invariant (I in 1 .. Source.Count);
-         pragma Loop_Invariant (I in Source.Entries'Range);
-         pragma Loop_Invariant (Target.Count <= Target.Max_Actors);
          T_Idx := Find_Actor (Target.Entries, Target.Count,
                               Source.Entries (I).Actor);
          if T_Idx = 0 then

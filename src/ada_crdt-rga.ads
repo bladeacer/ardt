@@ -1,3 +1,11 @@
+--  Replicated Growable Array (RGA) — default Yjs-style chunk-based engine.
+--  Contiguous elements written by the same replica are stored in sized
+--  blocks (Max_Stride), dramatically reducing allocation overhead
+--  vs. per-character nodes. Default sequence engine for Ada_CRDT.
+--
+--  Industry equivalence: Yjs/YATA algorithm.
+--  Supports structural splitting, state vector delta sync,
+--  tombstone garbage collection, and protocol-versioned serialization.
 with Ada.Streams;
 with Ada_CRDT.Core;
 
@@ -19,43 +27,44 @@ is
 
    type RGA (Item_Capacity : Positive) is private;
 
-   -- Count of items in the linked list
+   --  Number of internal storage items (linked list nodes).
    function Count (R : RGA) return Natural;
 
-   -- Total elements across all items (including tombstones)
+   --  Total visible + tombstoned elements.
    function Size (R : RGA) return Natural;
 
    function Length (R : RGA) return Natural is (Size (R));
 
-   -- Get element at physical position (1-indexed item element position)
+   --  Get element at physical position (1-indexed).
    function Get (R : RGA; Pos : Positive) return Element_Type;
 
-   -- Insert single element at physical position
+   --  Insert single element at physical position.
    procedure Insert (R     : in out RGA;
                      Pos   : Positive;
                      Id    : Node_Id;
                      Value : Element_Type);
 
-   -- Insert multiple contiguous elements as a single Item block
+   --  Insert multiple contiguous elements as a single Item block.
    procedure Insert_Bulk (R      : in out RGA;
                           Pos    : Positive;
                           Id     : Node_Id;
                           Values : Element_Array);
 
-   -- Delete element at physical position (tombstone)
+   --  Tombstone-delete element at physical position.
    procedure Delete (R   : in out RGA;
                      Pos : Positive);
 
-   -- Delete item starting with the given Node_Id
+   --  Tombstone-delete the item with the given Node_Id.
    procedure Delete_Node (R : in out RGA; Id : Node_Id);
 
-   -- Merge all source items into target
+   --  Convergent merge: insert all Source items not in Target,
+   --  preserving causal order by Node_Id.
    procedure Merge (Target : in out RGA;
                     Source : RGA);
 
    function "=" (Left, Right : RGA) return Boolean;
 
-   -- === State Vector / Delta Sync ===
+   --  State Vector / Delta Sync
 
    type Replica_Max_Seq is record
       Replica : Core.Replica_Id;
@@ -64,31 +73,33 @@ is
 
    type Replica_Max_Seq_Array is array (Positive range <>) of Replica_Max_Seq;
 
+   --  Compute state vector: max seq per replica for delta sync.
    procedure Compute_State_Vector
      (R     : RGA;
       SV    : out Replica_Max_Seq_Array;
       Count : out Natural);
 
+   --  Delta-sync: merge only items newer than remote state vector.
    procedure Sync_Delta
      (Target    : in out RGA;
       Source    : RGA;
       Remote_SV : Replica_Max_Seq_Array;
       SV_Count  : Natural);
 
-   -- === Tombstone Garbage Collection ===
+   --  Tombstone Garbage Collection
 
+   --  Physically remove all tombstoned items, reclaiming slots.
    procedure Compact (R : in out RGA);
 
-   -- === Stream Serialization with Protocol Version ===
-
-   -- Wire format: [Protocol_Version : Natural] [Total : Natural]
-   --   [Num_Items : Natural] [Item ...]
-   -- Each Item: [Node_Id] [Len : Natural] [Deleted : Boolean]
-   --   [Content : Element_Type array of length Len]
+   --  Stream Serialization with Protocol Version
+   --
+   --  Wire format: [Protocol_Version : Natural] [Total : Natural]
+   --    [Num_Items : Natural] [Item ...]
+   --  Each Item: [Node_Id] [Len : Natural] [Deleted : Boolean]
+   --    [Content : Element_Type array of length Len]
 
    procedure Write_RGA (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
                         Item   : RGA);
-
    procedure Read_RGA  (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
                         Item   : out RGA);
 

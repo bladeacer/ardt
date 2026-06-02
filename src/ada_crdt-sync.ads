@@ -1,17 +1,17 @@
+--  Sync layer interface for Ada_CRDT.
+--  Provides two transport strategies:
+--    * State_Based (CvRDT) — full state merge with delta compression
+--    * Op_Based (CmRDT)    — granular operation broadcast with ack/GC
+--
+--  By separating the storage engine (Sequences.*) from the sync layer,
+--  Ada's generic instantiation ensures unused code paths are optimized away,
+--  maximizing performance and gnatprove compatibility.
 with Ada_CRDT.Core;
-with Ada_CRDT.Sequences;
 
 package Ada_CRDT.Sync is
 
-   -- State Vector for tracking seen updates per replica
+   --  State vector for tracking which per-replica updates a peer has seen.
    type State_Vector is array (Positive range <>) of Natural with
      Default_Component_Value => 0;
-
-   -- Compute which items in Source need to be sent to a peer
-   -- based on the peer's state vector
-   generic
-      type Element_Type is private;
-      with function Has_Seq (E : Element_Type; Replica : Core.Replica_Id; Seq : Natural) return Boolean;
-   function Compute_Delta (Source_Total : Natural; Remote_SV : State_Vector) return Natural;
 
 end Ada_CRDT.Sync;

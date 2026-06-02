@@ -126,38 +126,39 @@ is
    -- Iterator
    function Has_Element (Position : Cursor) return Boolean is
    begin
-      if Position.Container = null then
-         return False;
-      end if;
-      return Position.Pos in 1 .. Position.Container.Total;
+      return Position.Pos in 1 .. Position.Total;
    end Has_Element;
 
-   function Iterate (Container : aliased RGA) return Cursor is
+   function Has_Element (Container : RGA; Position : Cursor) return Boolean is
+   begin
+      return Position.Pos in 1 .. Container.Total;
+   end Has_Element;
+
+   function First (Container : RGA) return Cursor is
    begin
       if Container.Total = 0 then
-         return Cursor'(Container => Container'Access, Pos => 0);
+         return Cursor'(Total => 0, Pos => 0);
       end if;
-      return Cursor'(Container => Container'Access, Pos => 1);
-   end Iterate;
+      return Cursor'(Total => Container.Total, Pos => 1);
+   end First;
 
-   function Constant_Ref (Container : aliased in RGA; Position : Cursor)
-      return Constant_Reference_Type
-   is
+   procedure Next (Container : RGA; Position : in out Cursor) is
+   begin
+      if Position.Pos < Container.Total then
+         Position.Pos := Position.Pos + 1;
+      else
+         Position.Pos := 0;
+      end if;
+   end Next;
+
+   function Element (Container : RGA; Position : Cursor) return Element_Type is
       Idx : constant Natural := Find_Pos (Container, Position.Pos);
    begin
       if Idx = 0 then
-         raise Constraint_Error with "RGA iterator: position out of range";
+         raise Constraint_Error with "Naive element: position out of range";
       end if;
-      return Constant_Reference_Type'
-        (Element => Container.Items (Idx).Value'Access);
-   end Constant_Ref;
-
-   procedure Next (Position : in out Cursor) is
-   begin
-      if Position.Container /= null then
-         Position.Pos := Position.Pos + 1;
-      end if;
-   end Next;
+      return Container.Items (Idx).Value;
+   end Element;
 
    -- Public ops
    function Count (R : RGA) return Natural is (R.Count);

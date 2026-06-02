@@ -1,3 +1,6 @@
+--  Thread-safe protected-object wrappers for Ada_CRDT types.
+--  Multiple tasks can concurrently mutate and query CRDT structures
+--  without external locking. Built on Ada's native protected objects.
 with Ada_CRDT.Core;
 with Ada_CRDT.Pn_Counters;
 with Ada_CRDT.Lww_Element_Sets;
@@ -5,9 +8,7 @@ with Ada_CRDT.Rga;
 
 package Ada_CRDT.Protected is
 
-   -- Thread-safe PN-Counter wrapper using Ada's native protected objects.
-   -- Multiple tasks can concurrently Increment/Decrement/Merge/Value
-   -- without external locking.
+   --  Thread-safe PN-Counter.
    protected type Shared_PN_Counter (Max_Actors : Positive) is
       procedure Increment (By    : Natural := 1;
                            Actor : Core.Replica_Id);
@@ -20,7 +21,7 @@ package Ada_CRDT.Protected is
       C : Pn_Counters.PN_Counter (Max_Actors);
    end Shared_PN_Counter;
 
-   -- Thread-safe LWW-Element-Set wrapper
+   --  Thread-safe LWW-Element-Set.
    generic
       type Element_Type is private;
       Max_Set_Size : Positive;
@@ -41,7 +42,7 @@ package Ada_CRDT.Protected is
       end Shared_Set;
    end Shared_LWW;
 
-   -- Thread-safe RGA wrapper
+   --  Thread-safe RGA (chunk-based Yjs engine).
    generic
       type Element_Type is private;
       Max_Size   : Positive;

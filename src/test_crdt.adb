@@ -773,7 +773,7 @@ procedure Test_Crdt is
 
       package RGA_Str is new Ada_CRDT.Sequences.Yjs (Character, Max_RGA);
 
-      R : aliased RGA_Str.RGA (Max_RGA);
+      R : RGA_Str.RGA (Max_RGA);
 
       function Next_Id return RGA_Str.Node_Id is
       begin
@@ -792,12 +792,12 @@ procedure Test_Crdt is
 
       -- Test cursor-based iteration
       declare
-         Pos  : RGA_Str.Cursor := RGA_Str.Iterate (R);
+         Pos  : RGA_Str.Cursor := RGA_Str.First (R);
          C    : Character;
          Cnt  : Natural := 0;
       begin
          while RGA_Str.Has_Element (Pos) loop
-            C := RGA_Str.Constant_Ref (R, Pos).Element.all;
+            C := RGA_Str.Element (R, Pos);
             Cnt := Cnt + 1;
             if Cnt = 1 then
                Check (C = 'A', "Iterator element 1 = 'A'");
@@ -807,7 +807,7 @@ procedure Test_Crdt is
                Check (C = 'C', "Iterator element 3 = 'C'");
             end if;
             exit when Cnt >= 3;
-            RGA_Str.Next (Pos);
+            RGA_Str.Next (R, Pos);
          end loop;
          Check (Cnt = 3, "Iterator traversed all 3 elements");
       end;
@@ -824,7 +824,7 @@ procedure Test_Crdt is
 
       package RGA_Str is new Ada_CRDT.Sequences.Naive (Character, Max_RGA);
 
-      R : aliased RGA_Str.RGA (Max_RGA);
+      R : RGA_Str.RGA (Max_RGA);
 
       function Next_Id return RGA_Str.Node_Id is
       begin
@@ -854,12 +854,12 @@ procedure Test_Crdt is
 
       -- Test cursor iteration
       declare
-         Pos  : RGA_Str.Cursor := RGA_Str.Iterate (R);
+         Pos  : RGA_Str.Cursor := RGA_Str.First (R);
          C    : Character;
          Cnt  : Natural := 0;
       begin
          while RGA_Str.Has_Element (Pos) loop
-            C := RGA_Str.Constant_Ref (R, Pos).Element.all;
+            C := RGA_Str.Element (R, Pos);
             Cnt := Cnt + 1;
             if Cnt = 1 then
                Check (C = 'a', "Naive iterator element 1 = 'a'");
@@ -869,7 +869,7 @@ procedure Test_Crdt is
                Check (C = 'c', "Naive iterator element 3 = 'c'");
             end if;
             exit when Cnt >= 3;
-            RGA_Str.Next (Pos);
+            RGA_Str.Next (R, Pos);
          end loop;
          Check (Cnt = 3, "Naive iterator traversed all 3 elements");
       end;
