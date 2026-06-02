@@ -53,7 +53,7 @@ release:
 	git commit -m "Release $$version" || true; \
 	git tag -a "v$$version" -m "Release $$version" || true; \
 	echo "Tagged v$$version at $$commit"; \
-	git push origin && git push origin --tags; \
+	git push -f origin && git push -f origin --tags; \
 	echo "Pushed commit and all tags to origin"
 
 clean:

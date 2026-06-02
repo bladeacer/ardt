@@ -1,6 +1,6 @@
 name = "ada_crdt"
 description = "CRDT library for Ada/SPARK"
-version = "0.2.1"
+version = "0.3.0"
 licenses = "MIT"
 authors = ["bladeacer"]
 maintainers = ["bladeacer <wg.nick.exe@gmail.com>"]
@@ -11,4 +11,4 @@ auto-gpr-with = false
 
 [origin]
 url = "git+https://codeberg.org/bladeacer/Ada_CRDT.git"
-commit = "6f3b54861c54558453d65e31fb51b97d3aad30c5"
+commit = "cb2e54d2853986b1186535f93af7c750dd5cf509"

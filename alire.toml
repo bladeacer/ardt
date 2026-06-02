@@ -1,9 +1,9 @@
 name = "ada_crdt"
 description = "CRDT library for Ada/SPARK"
-version = "0.2.1"
+version = "0.3.0"
 
-authors = ["@bladeacer"]
-maintainers = ["@bladeacer <wg.nick.exe@gmail.com>"]
+authors = ["bladeacer"]
+maintainers = ["bladeacer <wg.nick.exe@gmail.com>"]
 licenses = "MIT"
 website = "https://codeberg.org/bladeacer/Ada_CRDT"
 tags = ["crdt", "spark", "ada"]
