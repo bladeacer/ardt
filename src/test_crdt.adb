@@ -937,6 +937,257 @@ procedure Test_Crdt is
       Put_Line ("[Sync Layer] done.");
    end Test_Sync_Layer;
 
+   ---------------------------------------------------
+   --  Three-Way Split Brain (Concurrent Fork)      --
+   ---------------------------------------------------
+   procedure Test_Three_Way_Split is
+      Max_RGA : constant Positive := 50;
+      Seq     : Natural := 0;
+
+      package RGA_Str is new Ada_CRDT.Rga (Character, Max_RGA);
+
+      function To_String (R : RGA_Str.RGA) return String is
+         Buf : String (1 .. RGA_Str.Size (R));
+      begin
+         for I in 1 .. RGA_Str.Size (R) loop
+            Buf (I) := RGA_Str.Get (R, I);
+         end loop;
+         return Buf;
+      end To_String;
+
+      function Next_Id (Rep : Ada_CRDT.Core.Replica_Id) return RGA_Str.Node_Id is
+      begin
+         Seq := Seq + 1;
+         return (Replica => Rep, Seq => Seq);
+      end Next_Id;
+
+      use type RGA_Str.RGA;
+
+      Base : RGA_Str.RGA (Max_RGA);
+      R1   : RGA_Str.RGA (Max_RGA);
+      R2   : RGA_Str.RGA (Max_RGA);
+      R3   : RGA_Str.RGA (Max_RGA);
+   begin
+      New_Line;
+      Put_Line ("[Three-Way Split Brain]");
+
+      RGA_Str.Insert (Base, 1, (1, 1), 'H');
+      RGA_Str.Insert (Base, 2, (1, 2), 'e');
+      RGA_Str.Insert (Base, 3, (1, 3), 'l');
+      RGA_Str.Insert (Base, 4, (1, 4), 'l');
+      RGA_Str.Insert (Base, 5, (1, 5), 'o');
+
+      Seq := 5;
+
+      -- R1: insert ' ' + "World" at end
+      R1 := Base;
+      RGA_Str.Insert (R1, 6, Next_Id (1), ' ');
+      RGA_Str.Insert (R1, 7, Next_Id (1), 'W');
+      RGA_Str.Insert (R1, 8, Next_Id (1), 'o');
+      RGA_Str.Insert (R1, 9, Next_Id (1), 'r');
+      RGA_Str.Insert (R1, 10, Next_Id (1), 'l');
+      RGA_Str.Insert (R1, 11, Next_Id (1), 'd');
+
+      -- R2: delete position 2 ('e')
+      R2 := Base;
+      RGA_Str.Delete (R2, 2);
+
+      -- R3: insert 'X' at position 2
+      R3 := Base;
+      RGA_Str.Insert (R3, 2, Next_Id (3), 'X');
+
+      -- Build a unified state by merging all three
+      declare
+         M : RGA_Str.RGA (Max_RGA) := R1;
+      begin
+         RGA_Str.Merge (M, R2);
+         RGA_Str.Merge (M, R3);
+         Check (RGA_Str.Size (M) >= 5, "Unified state size >= 5 (got" &
+                Natural'Image (RGA_Str.Size (M)) & ") — " & To_String (M));
+      end;
+
+      -- Build final merged states in different orders, verify convergence
+      declare
+         M12 : RGA_Str.RGA (Max_RGA) := R1;
+         M21 : RGA_Str.RGA (Max_RGA) := R2;
+         M13 : RGA_Str.RGA (Max_RGA) := R1;
+         M31 : RGA_Str.RGA (Max_RGA) := R3;
+         M23 : RGA_Str.RGA (Max_RGA) := R2;
+         M32 : RGA_Str.RGA (Max_RGA) := R3;
+      begin
+         RGA_Str.Merge (M12, R2);  RGA_Str.Merge (M12, R3);
+         RGA_Str.Merge (M21, R1);  RGA_Str.Merge (M21, R3);
+         RGA_Str.Merge (M13, R3);  RGA_Str.Merge (M13, R2);
+         RGA_Str.Merge (M31, R1);  RGA_Str.Merge (M31, R2);
+         RGA_Str.Merge (M23, R3);  RGA_Str.Merge (M23, R1);
+         RGA_Str.Merge (M32, R2);  RGA_Str.Merge (M32, R1);
+
+         -- All merge orders produce states with same visible size
+         declare
+            Siz : constant Natural := RGA_Str.Size (M12);
+         begin
+            Check (RGA_Str.Size (M21) = Siz
+                   and then RGA_Str.Size (M13) = Siz
+                   and then RGA_Str.Size (M31) = Siz
+                   and then RGA_Str.Size (M23) = Siz
+                   and then RGA_Str.Size (M32) = Siz,
+                   "All 6 merge orders have same size =" &
+                   Natural'Image (Siz));
+         end;
+
+         -- Merging any permutation into M12 is idempotent (convergence)
+         declare
+            Tmp : RGA_Str.RGA (Max_RGA) := M12;
+         begin
+            RGA_Str.Merge (Tmp, M21);
+            Check (RGA_Str.Size (Tmp) = RGA_Str.Size (M12),
+                   "Merge(M12, M21) preserves size");
+         end;
+         declare
+            Tmp : RGA_Str.RGA (Max_RGA) := M12;
+         begin
+            RGA_Str.Merge (Tmp, M31);
+            Check (RGA_Str.Size (Tmp) = RGA_Str.Size (M12),
+                   "Merge(M12, M31) preserves size");
+         end;
+      end;
+
+      Put_Line ("[Three-Way Split Brain] done.");
+   end Test_Three_Way_Split;
+
+   ---------------------------------------------------
+   --  Byte-Boundary Round-tripping                 --
+   ---------------------------------------------------
+   procedure Test_Byte_Boundary is
+      Max_RGA : constant Positive := 20;
+      package RGA_Str is new Ada_CRDT.Rga (Character, Max_RGA);
+      Src : RGA_Str.RGA (Max_RGA);
+      Dst : RGA_Str.RGA (Max_RGA);
+      use Ada.Streams.Stream_IO;
+      F : Ada.Streams.Stream_IO.File_Type;
+   begin
+      New_Line;
+      Put_Line ("[Byte-Boundary Round-tripping]");
+
+      -- Empty RGA round-trip
+      Create (F, Out_File, "/tmp/ada_crdt_serialize_empty.bin");
+      RGA_Str.RGA'Write (Stream (F), Src);
+      Close (F);
+      Open (F, In_File, "/tmp/ada_crdt_serialize_empty.bin");
+      RGA_Str.RGA'Read (Stream (F), Dst);
+      Close (F);
+      Check (RGA_Str.Size (Dst) = 0,
+             "Empty RGA round-trip: size = 0");
+      declare
+         use type RGA_Str.RGA;
+      begin
+         Check (Src = Dst, "Empty RGA round-trip: Src = Dst");
+      end;
+
+      -- Null byte (Character'Val(0))
+      RGA_Str.Insert (Src, 1, (1, 1), Character'Val (0));
+      Create (F, Out_File, "/tmp/ada_crdt_serialize_0.bin");
+      RGA_Str.RGA'Write (Stream (F), Src);
+      Close (F);
+      Open (F, In_File, "/tmp/ada_crdt_serialize_0.bin");
+      RGA_Str.RGA'Read (Stream (F), Dst);
+      Close (F);
+      Check (RGA_Str.Get (Dst, 1) = Character'Val (0),
+             "Null byte round-trip: Get(1) = 0");
+      declare
+         use type RGA_Str.RGA;
+      begin
+         Check (Src = Dst, "Null byte round-trip: Src = Dst");
+      end;
+
+      -- High byte (Character'Val(255))
+      RGA_Str.Insert (Src, 2, (1, 2), Character'Val (255));
+      Create (F, Out_File, "/tmp/ada_crdt_serialize_255.bin");
+      RGA_Str.RGA'Write (Stream (F), Src);
+      Close (F);
+      Open (F, In_File, "/tmp/ada_crdt_serialize_255.bin");
+      RGA_Str.RGA'Read (Stream (F), Dst);
+      Close (F);
+      Check (RGA_Str.Get (Dst, 1) = Character'Val (0),
+             "High byte round-trip: Get(1) = 0 (unchanged)");
+      Check (RGA_Str.Get (Dst, 2) = Character'Val (255),
+             "High byte round-trip: Get(2) = 255");
+      declare
+         use type RGA_Str.RGA;
+      begin
+         Check (Src = Dst, "High byte round-trip: Src = Dst");
+      end;
+
+      Put_Line ("[Byte-Boundary Round-tripping] done.");
+   end Test_Byte_Boundary;
+
+   ---------------------------------------------------
+   --  Out-of-Order Delta Appends                   --
+   ---------------------------------------------------
+   procedure Test_Out_Of_Order_Delta is
+      Max_RGA : constant Positive := 20;
+      package RGA_Str is new Ada_CRDT.Rga (Character, Max_RGA);
+      A : RGA_Str.RGA (Max_RGA);
+      B : RGA_Str.RGA (Max_RGA);
+      SV : RGA_Str.Replica_Max_Seq_Array (1 .. 10);
+      SV_Cnt : Natural;
+   begin
+      New_Line;
+      Put_Line ("[Out-of-Order Delta Appends]");
+
+      RGA_Str.Insert (A, 1, (1, 1), 'A');
+      RGA_Str.Insert (A, 2, (1, 2), 'B');
+      RGA_Str.Insert (A, 3, (1, 3), 'C');
+
+      -- Fabricate a state vector claiming B has seen ops A never produced
+      SV (1) := (Replica => 999, Max_Seq => 999);
+      SV_Cnt := 1;
+
+      declare
+         No_Exception : Boolean := True;
+      begin
+         RGA_Str.Sync_Delta (B, A, SV, SV_Cnt);
+         Check (No_Exception,
+                "Delta with unseen replica does not raise an exception");
+      exception
+         when others =>
+            Check (False, "Delta with unseen replica raised an exception");
+      end;
+
+      Check (RGA_Str.Size (B) = 3,
+             "After ooo delta B has all 3 elements (got" &
+             Natural'Image (RGA_Str.Size (B)) & ")");
+      Check (RGA_Str.Get (B, 1) = 'A', "Ooo delta: Get (1) = 'A'");
+      Check (RGA_Str.Get (B, 2) = 'B', "Ooo delta: Get (2) = 'B'");
+      Check (RGA_Str.Get (B, 3) = 'C', "Ooo delta: Get (3) = 'C'");
+
+      -- Now test with a real state vector that's incomplete (missing replica 1)
+      -- This should still work: the missing replica means all its items are newer.
+      declare
+         use type RGA_Str.RGA;
+         C : RGA_Str.RGA (Max_RGA);
+      begin
+         RGA_Str.Insert (C, 1, (2, 1), 'X');
+         RGA_Str.Compute_State_Vector (C, SV, SV_Cnt);
+         Check (SV_Cnt >= 1, "State vector computed");
+         declare
+            No_Exception : Boolean := True;
+         begin
+            RGA_Str.Sync_Delta (B, A, SV, SV_Cnt);
+            Check (No_Exception,
+                   "Delta with incomplete SV does not raise an exception");
+         exception
+            when others =>
+               Check (False, "Delta with incomplete SV raised an exception");
+         end;
+         Check (RGA_Str.Size (B) = 3,
+                "After incomplete SV delta B still has 3 elements (got" &
+                Natural'Image (RGA_Str.Size (B)) & ")");
+      end;
+
+      Put_Line ("[Out-of-Order Delta Appends] done.");
+   end Test_Out_Of_Order_Delta;
+
 begin
    Put_Line ("=== Ada_CRDT CRDT Test Suite ===");
    Put_Line ("Running unit tests, property-based fuzzing, and chaos simulations...");
@@ -955,6 +1206,9 @@ begin
    Test_Iterators;
    Test_Naive_Engine;
    Test_Sync_Layer;
+   Test_Three_Way_Split;
+   Test_Byte_Boundary;
+   Test_Out_Of_Order_Delta;
 
    New_Line;
    Put_Line ("=== Results ===");
