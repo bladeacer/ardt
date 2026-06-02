@@ -12,7 +12,7 @@ help:
 	@echo '  test     Alias for run'
 	@echo '  prove    Run SPARK proofs (alr gnatprove)'
 	@echo '  doc      Generate Markdown API docs (docs/api-docs/)'
-	@echo '  release  Tag current version and update Alire index'
+	@echo '  release  Tag, update Alire index, and push. Use VERSION=x.y.z to set custom version'
 	@echo '  clean    Remove build artifacts'
 	@echo '  help     Show this message'
 
@@ -35,14 +35,29 @@ api-docs:
 	python3 tools/rst2md.py obj/gnatdoc-rst docs/api-docs
 
 release:
-	@if ! git diff --quiet HEAD; then echo "Error: working tree not clean"; exit 1; fi; \
-	version=$$(sed -n 's/^version = "\(.*\)"/\1/p' alire.toml); \
-	commit=$$(git rev-parse HEAD); \
-	tag="v$$version"; \
-	git tag -a "$$tag" -m "Release $$version"; \
-	sed -i "s/^commit = \".*\"/commit = \"$$commit\"/" "index/ad/ada_crdt/ada_crdt-$$version.toml"; \
-	echo "Tagged $$tag at $$commit"; \
-	echo "Push with: git push origin $$tag"
+	@if [ -n "$(VERSION)" ]; then \
+		version="$(VERSION)"; \
+		sed -i 's/^version = ".*"/version = "'$$version'"/' alire.toml; \
+		commit=$$(git rev-parse HEAD); \
+		index_file="index/ad/ada_crdt/ada_crdt-$$version.toml"; \
+		if [ ! -f "$$index_file" ]; then \
+			cp index/ad/ada_crdt/ada_crdt-0.1.0-dev.toml "$$index_file"; \
+		fi; \
+		sed -i 's/^version = ".*"/version = "'$$version'"/' "$$index_file"; \
+		sed -i 's/^commit = ".*"/commit = "'$$commit'"/' "$$index_file"; \
+		git add alire.toml "$$index_file"; \
+		git commit -m "Release $$version"; \
+		git tag -a "v$$version" -m "Release $$version"; \
+		echo "Tagged v$$version at $$commit"; \
+	else \
+		if ! git diff --quiet HEAD; then echo "Error: working tree not clean"; exit 1; fi; \
+		version=$$(sed -n 's/^version = "\(.*\)"/\1/p' alire.toml); \
+		commit=$$(git rev-parse HEAD); \
+		git tag -a "v$$version" -m "Release $$version"; \
+		echo "Tagged v$$version at $$commit"; \
+	fi; \
+	git push origin --tags; \
+	echo "Pushed all tags to origin"
 
 clean:
 	alr clean
