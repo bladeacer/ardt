@@ -10,12 +10,10 @@ is
    function Value (C : PN_Counter) return Integer;
 
    function Can_Increment (C : PN_Counter; By : Counter_Range := 1)
-                           return Boolean with
-     Inline;
+                           return Boolean;
 
    function Can_Decrement (C : PN_Counter; By : Counter_Range := 1)
-                           return Boolean with
-     Inline;
+                           return Boolean;
 
    procedure Increment (C   : in out PN_Counter;
                         By  : Counter_Range := 1) with
@@ -34,5 +32,13 @@ private
       P : Counter_Range := 0;
       N : Counter_Range := 0;
    end record;
+
+   function Can_Increment (C : PN_Counter; By : Counter_Range := 1)
+                           return Boolean is
+     (C.P <= Natural'Last - By);
+
+   function Can_Decrement (C : PN_Counter; By : Counter_Range := 1)
+                           return Boolean is
+     (C.N <= Natural'Last - By);
 
 end Ardt.Pn_Counters;

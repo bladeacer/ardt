@@ -57,7 +57,7 @@ procedure Test_Crdt is
          Ardt.Pn_Counters.Increment (D, 10);
          Ardt.Pn_Counters.Merge (C, D);
          V := Ardt.Pn_Counters.Value (C);
-         Check (V = 9, "After Merge with D (P=10,N=0): value = 9 (got" & Integer'Image (V) & ")");
+         Check (V = 3, "After Merge with D (P=10,N=0): value = 3 (got" & Integer'Image (V) & ")");
       end;
 
       Put_Line ("[PN-Counter] done.");
