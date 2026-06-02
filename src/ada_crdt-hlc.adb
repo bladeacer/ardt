@@ -3,6 +3,7 @@ with Ada.Calendar;
 package body Ada_CRDT.HLC is
 
    use Ada.Calendar;
+   use type Core.Replica_Id;
 
    ---------------
    --  Ordering --

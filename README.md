@@ -193,3 +193,7 @@ skipped by `gnatprove` because generics are not analyzed by default
 ## License
 
 MIT.
+
+## Credits
+
+y.js, Ada.
