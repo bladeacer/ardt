@@ -1,14 +1,14 @@
 name = "ada_crdt"
 description = "CRDT library for Ada/SPARK"
-version = "0.2.1"
+version = "1.0.0"
 licenses = "MIT"
 authors = ["bladeacer"]
 maintainers = ["bladeacer <wg.nick.exe@gmail.com>"]
 maintainers-logins = ["bladeacer"]
-website = "https://codeberg.org/bladeacer/Ada_CRDT"
+website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada", "library"]
 auto-gpr-with = false
 
 [origin]
-url = "git+https://codeberg.org/bladeacer/Ada_CRDT.git"
-commit = "6f3b54861c54558453d65e31fb51b97d3aad30c5"
+url = "git+https://github.com/bladeacer/ada_crdt.git"
+commit = "dc6d87d7c07020fc7a0522dd085b994ad910518a"

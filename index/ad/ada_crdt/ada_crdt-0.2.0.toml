@@ -5,10 +5,10 @@ licenses = "MIT"
 authors = ["bladeacer"]
 maintainers = ["bladeacer <wg.nick.exe@gmail.com>"]
 maintainers-logins = ["bladeacer"]
-website = "https://codeberg.org/bladeacer/Ada_CRDT"
+website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada", "library"]
 auto-gpr-with = false
 
 [origin]
-url = "git+https://codeberg.org/bladeacer/Ada_CRDT.git"
+url = "git+https://github.com/bladeacer/ada_crdt.git"
 commit = "f53d561cd72611cc603fb147c254e78bdb4b4e00"
