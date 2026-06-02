@@ -24,11 +24,21 @@ is
       R.Sz := R.Sz + 1;
    end Insert;
 
+   function Find_Node (R : RGA; Id : Node_Id) return Natural;
+
    procedure Delete (R   : in out RGA;
                      Pos : Positive) is
    begin
       R.Nodes (Pos).Deleted := True;
    end Delete;
+
+   procedure Delete_Node (R : in out RGA; Id : Node_Id) is
+      Idx : constant Natural := Find_Node (R, Id);
+   begin
+      if Idx > 0 then
+         R.Nodes (Idx).Deleted := True;
+      end if;
+   end Delete_Node;
 
    function Find_Node (R : RGA; Id : Node_Id) return Natural is
    begin

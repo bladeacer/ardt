@@ -36,6 +36,8 @@ is
    procedure Delete (R   : in out RGA;
                      Pos : Positive);
 
+   procedure Delete_Node (R : in out RGA; Id : Node_Id);
+
    procedure Merge (Target : in out RGA;
                     Source : RGA);
 
