@@ -1,4 +1,6 @@
 with Ada.Streams;
+with CRDT.Core.LEB128;
+
 package body CRDT.Sequences.Naive with
   SPARK_Mode => Off
 is
@@ -317,9 +319,9 @@ is
    is
       use Ada.Streams;
    begin
-      Natural'Write (Stream, Core.Protocol_Version);
-      Natural'Write (Stream, Item.Total);
-      Natural'Write (Stream, Item.Count);
+      Core.LEB128.Encode (Stream, Core.Protocol_Version);
+      Core.LEB128.Encode (Stream, Item.Total);
+      Core.LEB128.Encode (Stream, Item.Count);
       declare
          Cur : Natural := Item.Head;
       begin
@@ -346,12 +348,12 @@ is
       Prev_Idx  : Natural := 0;
       New_Idx   : Natural;
    begin
-      Natural'Read (Stream, Ver);
+      Core.LEB128.Decode (Stream, Ver);
       if Ver /= Core.Protocol_Version then
          raise Constraint_Error with "unsupported protocol version";
       end if;
-      Natural'Read (Stream, Total);
-      Natural'Read (Stream, Num_Items);
+      Core.LEB128.Decode (Stream, Total);
+      Core.LEB128.Decode (Stream, Num_Items);
       Item.Total := Total;
       Item.Head := 0;
       Item.Count := 0;

@@ -47,7 +47,7 @@ package CRDT.Core is
 
    --  Wire protocol version for all serialized CRDT state.
    --  Increment when making breaking changes to the binary format.
-   Protocol_Version : constant Natural := 1;
+   Protocol_Version : constant Natural := 2;
 
 private
 

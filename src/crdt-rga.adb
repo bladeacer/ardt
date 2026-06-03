@@ -1,3 +1,5 @@
+with CRDT.Core.LEB128;
+
 package body CRDT.Rga with
   SPARK_Mode => Off
 is
@@ -498,19 +500,15 @@ is
    is
       use Ada.Streams;
    begin
-      -- Protocol version header
-      Natural'Write (Stream, Core.Protocol_Version);
-      -- Write total elements
-      Natural'Write (Stream, Item.Total);
-      -- Write number of items
-      Natural'Write (Stream, Item.Count);
-      -- Walk items and write each one
+      Core.LEB128.Encode (Stream, Core.Protocol_Version);
+      Core.LEB128.Encode (Stream, Item.Total);
+      Core.LEB128.Encode (Stream, Item.Count);
       declare
          Cur : Natural := Item.Head;
       begin
          while Cur /= 0 loop
             Node_Id'Write (Stream, Item.Items (Cur).Id);
-            Natural'Write (Stream, Item.Items (Cur).Len);
+            Core.LEB128.Encode (Stream, Item.Items (Cur).Len);
             Boolean'Write (Stream, Item.Items (Cur).Deleted);
             for I in 1 .. Item.Items (Cur).Len loop
                Element_Type'Write (Stream, Item.Items (Cur).Content (I));
@@ -534,15 +532,14 @@ is
       Prev_Idx  : Natural := 0;
       New_Idx   : Natural;
    begin
-      -- Read and verify protocol version
-      Natural'Read (Stream, Ver);
+      Core.LEB128.Decode (Stream, Ver);
       if Ver /= Core.Protocol_Version then
          raise Constraint_Error with
            "RGA Read_RGA: unsupported protocol version";
       end if;
 
-      Natural'Read (Stream, Total);
-      Natural'Read (Stream, Num_Items);
+      Core.LEB128.Decode (Stream, Total);
+      Core.LEB128.Decode (Stream, Num_Items);
       Item.Total := Total;
       Item.Head := 0;
       Item.Count := 0;
@@ -550,7 +547,7 @@ is
 
       for J in 1 .. Num_Items loop
          Node_Id'Read (Stream, Id);
-         Natural'Read (Stream, Len);
+         Core.LEB128.Decode (Stream, Len);
          Boolean'Read (Stream, Deleted);
 
          New_Idx := Alloc_Item (Item);

@@ -12,6 +12,8 @@ package CRDT.Lww_Element_Sets with
   SPARK_Mode
 is
 
+   Max_Capacity : constant Positive := Max_Set_Size;
+
    type Timestamp_Entry is record
       Element : Element_Type;
       Time    : Core.Lamport_Time;

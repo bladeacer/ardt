@@ -1,4 +1,4 @@
-.PHONY: help all build run test prove doc api-docs clean release
+.PHONY: help all build run test prove doc api-docs clean release demo
 
 .DEFAULT_GOAL := help
 
@@ -13,6 +13,7 @@ help:
 	@echo '  prove    Run SPARK proofs (alr gnatprove)'
 	@echo '  doc      Generate Markdown API docs (docs/api-docs/)'
 	@echo '  release  Tag, update index+releases (Codeberg URL), push. Use VERSION=x.y.z'
+	@echo '  demo     Build and run the Game of Life demo'
 	@echo '  clean    Remove build artifacts'
 	@echo '  help     Show this message'
 
@@ -63,6 +64,10 @@ release:
 	echo "Tagged v$$version at $$commit"; \
 	git push origin HEAD && git push origin "v$$version"; \
 	echo "Pushed commit and tag v$$version"
+
+demo:
+	alr exec -- gprbuild -Pdemo/demo.gpr
+	./demo/demo_life
 
 clean:
 	alr clean

@@ -1,0 +1,30 @@
+with "../crdt";
+
+project Demo is
+
+   for Languages use ("Ada");
+   for Source_Dirs use (".");
+   for Object_Dir use "obj";
+   for Exec_Dir use ".";
+   for Main use ("demo_life.adb");
+
+   package Compiler is
+      for Default_Switches ("Ada") use
+        ("-gnatwa",
+         "-gnat12",
+         "-gnata",
+         "-gnatwF",
+         "-gnatwsh");
+   end Compiler;
+
+   package Builder is
+      for Default_Switches ("Ada") use
+        ("-g");
+   end Builder;
+
+   package Binder is
+      for Default_Switches ("Ada") use
+        ("-E");
+   end Binder;
+
+end Demo;
