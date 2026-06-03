@@ -121,6 +121,55 @@ def parse_blocks(text):
     return blocks
 
 
+def parse_ada_annotations(ads_path):
+    """Parse .ads file for @param and @return annotations per subprogram."""
+    if not os.path.isfile(ads_path):
+        return {}
+    with open(ads_path) as f:
+        lines = f.readlines()
+    result = {}
+    cur = {"params": {}, "returns": ""}
+    in_private = False
+    for line in lines:
+        s = line.strip()
+        if re.match(r'^private$', s):
+            in_private = True
+            continue
+        if in_private:
+            continue
+        pm = re.match(r'--\s*@param\s+(\S+)\s*(.*)', s)
+        s = line.strip()
+        pm = re.match(r'--\s*@param\s+(\S+)\s*(.*)', s)
+        if pm:
+            cur["params"][pm.group(1)] = pm.group(2).strip()
+            continue
+        rm = re.match(r'--\s*@return\s*(.*)', s)
+        if rm:
+            cur["returns"] = rm.group(1).strip()
+            continue
+        sm = re.match(
+            r'\s*(?:overriding\s+)?(?:procedure\b|function\b)\s+'
+            r'("(?:[^"]|"")+"|\w+)',
+            s
+        )
+        if sm:
+            name = sm.group(1)
+            result[name] = cur
+            cur = {"params": {}, "returns": ""}
+    return result
+
+
+def subprog_short_name(block_name):
+    """Extract short name from RST block name e.g. 'function Contains (...)' -> 'Contains'."""
+    m = re.match(r'(?:procedure|function)\s+("(?:[^"]|"")+"|\w+)', block_name)
+    return m.group(1) if m else block_name
+
+
+def package_to_ads_path(pkg_name):
+    """Convert CRDT.Lww_Element_Sets -> src/crdt-lww_element_sets.ads."""
+    return "src/" + "-".join(pkg_name.lower().split(".")) + ".ads"
+
+
 def render_index(packages):
     lines = ["# CRDT API Reference", "", "## Packages", ""]
     for title in sorted(packages, key=lambda p: (p.count("."), p.lower())):
@@ -129,7 +178,7 @@ def render_index(packages):
     return "\n".join(lines)
 
 
-def render_package(title, desc, blocks):
+def render_package(title, desc, blocks, annotations):
     lines = [f"# {title}", ""]
     if desc:
         lines.append(desc)
@@ -147,17 +196,23 @@ def render_package(title, desc, blocks):
         lines.append(f"## {sec}\n")
         for name, decl, params_returns in items:
             params, returns = params_returns
+            sname = subprog_short_name(name)
+            anno = annotations.get(sname, {})
             lines.append(f"### {name}\n")
             if decl:
                 lines.append(f"```ada\n{decl}\n```\n")
-            if params:
+            merged = {}
+            for pname in sorted(params):
+                merged[pname] = params[pname] or anno.get("params", {}).get(pname, "")
+            if merged:
                 lines.append("| Parameter | Description |")
                 lines.append("|-----------|-------------|")
-                for pname, pdesc in sorted(params.items()):
+                for pname, pdesc in sorted(merged.items()):
                     lines.append(f"| `{pname}` | {pdesc} |")
                 lines.append("")
-            if returns:
-                lines.append(f"**Returns:** {returns}\n")
+            rdesc = returns or anno.get("returns", "")
+            if rdesc:
+                lines.append(f"**Returns:** {rdesc}\n")
 
     return "\n".join(lines)
 
@@ -178,9 +233,11 @@ def main():
 
         desc = parse_description(text)
         blocks = parse_blocks(text)
+        ads_path = package_to_ads_path(title)
+        annotations = parse_ada_annotations(ads_path)
         fn = slug(title)
         with open(join(OUT_DIR, fn), "w") as f:
-            f.write(render_package(title, desc, blocks))
+            f.write(render_package(title, desc, blocks, annotations))
         packages[title] = fn
 
     with open(join(OUT_DIR, "index.md"), "w") as f:

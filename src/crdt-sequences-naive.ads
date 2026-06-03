@@ -36,30 +36,39 @@ is
    function Has_Element (Position : Cursor) return Boolean;
 
    --  Check if cursor is valid within a specific container.
+   --  @param Container  The sequence container.
+   --  @param Position   Cursor to check.
    --  @return True if the cursor is within bounds.
    function Has_Element (Container : RGA; Position : Cursor) return Boolean;
 
    --  Return cursor to the first visible element.
+   --  @param Container  The sequence container.
    --  @return Cursor positioned at first element.
    function First (Container : RGA) return Cursor;
 
    --  Advance cursor to the next visible element.
+   --  @param Container  The sequence container.
    --  @param Position  Cursor to advance (modified in place).
    procedure Next (Container : RGA; Position : in out Cursor);
 
    --  Read element at cursor position.
+   --  @param Container  The sequence container.
+   --  @param Position   Cursor to read from.
    --  @return Element at the cursor's position.
    function Element (Container : RGA; Position : Cursor) return Element_Type;
 
    --  Number of internal storage items (linked list nodes).
+   --  @param R  The sequence to examine.
    --  @return Count of allocated nodes (includes tombstones).
    function Count (R : RGA) return Natural;
 
    --  Total visible elements (excluding tombstones).
+   --  @param R  The sequence to examine.
    --  @return Number of non-deleted elements.
    function Size (R : RGA) return Natural;
 
    --  Alias for Size.
+   --  @param R  The sequence to examine.
    --  @return Number of non-deleted elements.
    function Length (R : RGA) return Natural is (Size (R));
 
@@ -108,6 +117,8 @@ is
                      Source : RGA);
 
    --  Structural equality: same Node_Id, content, and deletion status.
+   --  @param Left   Left sequence operand.
+   --  @param Right  Right sequence operand.
    --  @return True if both sequences are identical.
    function "=" (Left, Right : RGA) return Boolean;
 

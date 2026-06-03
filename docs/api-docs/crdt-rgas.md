@@ -26,14 +26,18 @@ type RGAs (Count : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Index` |  |
-| `RS` |  |
+| `Index` | 1-based index. |
+| `RS` | The collection. |
+
+**Returns:** RGA entry at that index.
 
 ### function Size (RS : CRDT.Rgas.RGAs) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `RS` |  |
+| `RS` | The collection of RGAs. |
+
+**Returns:** Current count of appended entries.
 
 ## Procedures
 
@@ -41,11 +45,11 @@ type RGAs (Count : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` |  |
-| `RS` |  |
+| `R` | RGA entry to append. |
+| `RS` | The collection to append to. |
 
 ### procedure Merge_All (RS : CRDT.Rgas.RGAs)
 
 | Parameter | Description |
 |-----------|-------------|
-| `RS` |  |
+| `RS` | The collection whose entries are merged. |

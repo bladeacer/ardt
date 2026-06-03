@@ -38,14 +38,17 @@ is
    type RGA (Item_Capacity : Positive) is private;
 
    --  Number of internal storage items (linked list nodes).
+   --  @param R  The sequence to examine.
    --  @return Count of allocated nodes (includes tombstones).
    function Count (R : RGA) return Natural;
 
    --  Total visible elements (excluding tombstones).
+   --  @param R  The sequence to examine.
    --  @return Number of non-deleted elements.
    function Size (R : RGA) return Natural;
 
    --  Alias for Size.
+   --  @param R  The sequence to examine.
    --  @return Number of non-deleted elements.
    function Length (R : RGA) return Natural is (Size (R));
 
@@ -94,6 +97,8 @@ is
                      Source : RGA);
 
    --  Structural equality: same Node_Id, content, and deletion status.
+   --  @param Left   Left sequence operand.
+   --  @param Right  Right sequence operand.
    --  @return True if both sequences are identical.
    function "=" (Left, Right : RGA) return Boolean;
 

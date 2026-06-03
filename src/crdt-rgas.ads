@@ -33,6 +33,7 @@ is
    type RGAs (Count : Positive) is private;
 
    --  Number of RGA entries currently stored.
+   --  @param RS  The collection of RGAs.
    --  @return Current count of appended entries.
    function Size (RS : RGAs) return Natural;
 

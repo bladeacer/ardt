@@ -29,8 +29,10 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `E` |  |
-| `S` |  |
+| `E` | The element to look up. |
+| `S` | The set to query. |
+
+**Returns:** True if element is considered present.
 
 ## Procedures
 
@@ -38,27 +40,27 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `E` |  |
-| `S` |  |
-| `TS` |  |
+| `E` | Element to add. |
+| `S` | The set to modify. |
+| `TS` | Lamport timestamp for this add operation. |
 
 ### procedure Clear (S : CRDT.Lww_Element_Sets.LWW_Element_Set)
 
 | Parameter | Description |
 |-----------|-------------|
-| `S` |  |
+| `S` | The set to clear. |
 
 ### procedure Merge (Target : CRDT.Lww_Element_Sets.LWW_Element_Set; Source : CRDT.Lww_Element_Sets.LWW_Element_Set)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Source` |  |
-| `Target` |  |
+| `Source` | The set to merge from. |
+| `Target` | The set to merge into. |
 
 ### procedure Remove (S : CRDT.Lww_Element_Sets.LWW_Element_Set; E : CRDT.Lww_Element_Sets.Element_Type; TS : CRDT.Core.Lamport_Time)
 
 | Parameter | Description |
 |-----------|-------------|
-| `E` |  |
-| `S` |  |
-| `TS` |  |
+| `E` | Element to remove. |
+| `S` | The set to modify. |
+| `TS` | Lamport timestamp for this remove operation. |

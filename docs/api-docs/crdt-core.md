@@ -40,73 +40,95 @@ Default_Component_Value => 0;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left operand. |
+| `Right` | Right operand. |
+
+**Returns:** True if Left causally precedes Right.
 
 ### function "=" (Left : CRDT.Core.Lamport_Time; Right : CRDT.Core.Lamport_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left operand. |
+| `Right` | Right operand. |
+
+**Returns:** True if timestamps are identical.
 
 ### function ">" (Left : CRDT.Core.Lamport_Time; Right : CRDT.Core.Lamport_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left operand. |
+| `Right` | Right operand. |
+
+**Returns:** True if Left causally follows Right.
 
 ### function HLC_Eq (Left : CRDT.Core.HLC_Time; Right : CRDT.Core.HLC_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left HLC timestamp. |
+| `Right` | Right HLC timestamp. |
+
+**Returns:** True if timestamps are identical.
 
 ### function HLC_Less (Left : CRDT.Core.HLC_Time; Right : CRDT.Core.HLC_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left HLC timestamp. |
+| `Right` | Right HLC timestamp. |
+
+**Returns:** True if Left causally precedes Right.
 
 ### function HLC_Max (Left : CRDT.Core.HLC_Time; Right : CRDT.Core.HLC_Time) return CRDT.Core.HLC_Time
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | First HLC timestamp. |
+| `Right` | Second HLC timestamp. |
+
+**Returns:** The causally later timestamp.
 
 ### function Lamport_Max (Left : CRDT.Core.Lamport_Time; Right : CRDT.Core.Lamport_Time) return CRDT.Core.Lamport_Time
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | First timestamp. |
+| `Right` | Second timestamp. |
+
+**Returns:** The causally later timestamp.
 
 ### function New_Replica_Id return CRDT.Core.Replica_Id
+
+**Returns:** A fresh Replica_Id not previously returned.
 
 ### function VTime_Eq (Left : CRDT.Core.VTime; Right : CRDT.Core.VTime) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left vector clock. |
+| `Right` | Right vector clock. |
+
+**Returns:** True if Left and Right are identical.
 
 ### function VTime_Leq (Left : CRDT.Core.VTime; Right : CRDT.Core.VTime) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left vector clock. |
+| `Right` | Right vector clock. |
+
+**Returns:** True if Left is at or behind Right.
 
 ### function VTime_Less (Left : CRDT.Core.VTime; Right : CRDT.Core.VTime) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` |  |
-| `Right` |  |
+| `Left` | Left vector clock. |
+| `Right` | Right vector clock. |
+
+**Returns:** True if Left is strictly behind Right.
 
 ## Procedures
 
@@ -114,12 +136,12 @@ Default_Component_Value => 0;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Idx` |  |
-| `VT` |  |
+| `Idx` | Index of the entry to increment. |
+| `VT` | Vector clock to modify. |
 
 ### procedure VTime_Merge (Target : CRDT.Core.VTime; Source : CRDT.Core.VTime)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Source` |  |
-| `Target` |  |
+| `Source` | Vector clock to merge from. |
+| `Target` | Vector clock to update. |

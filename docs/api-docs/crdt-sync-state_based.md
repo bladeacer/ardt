@@ -24,21 +24,27 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Local` |  |
-| `Remote_SV` |  |
+| `Local` | Local replica state. |
+| `Remote_SV` | Remote state vector. |
+
+**Returns:** Count of items the remote peer is behind.
 
 ### function Create (Config : CRDT.Sync.State_Based.Sync_Config) return CRDT.Sync.State_Based.Replica_State
 
 | Parameter | Description |
 |-----------|-------------|
-| `Config` |  |
+| `Config` | Sync configuration. |
+
+**Returns:** Freshly initialized replica state.
 
 ### function Is_Ahead (SV : CRDT.Core.VTime; TS : CRDT.Core.Lamport_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `SV` |  |
-| `TS` |  |
+| `SV` | State vector to check. |
+| `TS` | Lamport timestamp to compare against. |
+
+**Returns:** True if the SV has entry at or past TS.
 
 ## Procedures
 
@@ -46,5 +52,5 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Local` |  |
-| `Remote` |  |
+| `Local` | Local state to update. |
+| `Remote` | Remote state to merge from. |

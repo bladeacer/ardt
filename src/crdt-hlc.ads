@@ -41,14 +41,20 @@ package CRDT.HLC is
    function Now (Clock : Instance) return HLC_Time;
 
    --  HLC less-than: compares Wall, then Log, then Node.
+   --  @param Left   Left HLC timestamp.
+   --  @param Right  Right HLC timestamp.
    --  @return True if Left causally precedes Right.
    function "<" (Left, Right : HLC_Time) return Boolean;
 
    --  HLC equality: all three fields must match.
+   --  @param Left   Left HLC timestamp.
+   --  @param Right  Right HLC timestamp.
    --  @return True if timestamps are identical.
    function "=" (Left, Right : HLC_Time) return Boolean;
 
    --  HLC greater-than: inverse of "<".
+   --  @param Left   Left HLC timestamp.
+   --  @param Right  Right HLC timestamp.
    --  @return True if Left causally follows Right.
    function ">" (Left, Right : HLC_Time) return Boolean;
 

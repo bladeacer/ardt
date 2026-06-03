@@ -20,18 +20,26 @@ package CRDT.Core is
    end record;
 
    --  Lamport less-than: compares Stamp first, then Node.
+   --  @param Left   Left operand.
+   --  @param Right  Right operand.
    --  @return True if Left causally precedes Right.
    function "<" (Left, Right : Lamport_Time) return Boolean;
 
    --  Lamport equality: both Stamp and Node must match.
+   --  @param Left   Left operand.
+   --  @param Right  Right operand.
    --  @return True if timestamps are identical.
    function "=" (Left, Right : Lamport_Time) return Boolean;
 
    --  Lamport greater-than: inverse of "<".
+   --  @param Left   Left operand.
+   --  @param Right  Right operand.
    --  @return True if Left causally follows Right.
    function ">" (Left, Right : Lamport_Time) return Boolean;
 
    --  Return the maximum of two Lamport timestamps.
+   --  @param Left   First timestamp.
+   --  @param Right  Second timestamp.
    --  @return The causally later timestamp.
    function Lamport_Max (Left, Right : Lamport_Time) return Lamport_Time;
 
@@ -47,14 +55,20 @@ package CRDT.Core is
    end record;
 
    --  HLC less-than: compares Wall, then Log, then Node.
+   --  @param Left   Left HLC timestamp.
+   --  @param Right  Right HLC timestamp.
    --  @return True if Left causally precedes Right.
    function HLC_Less (Left, Right : HLC_Time) return Boolean;
 
    --  HLC equality: all three fields must match.
+   --  @param Left   Left HLC timestamp.
+   --  @param Right  Right HLC timestamp.
    --  @return True if timestamps are identical.
    function HLC_Eq   (Left, Right : HLC_Time) return Boolean;
 
    --  Return the maximum of two HLC timestamps.
+   --  @param Left   First HLC timestamp.
+   --  @param Right  Second HLC timestamp.
    --  @return The causally later timestamp.
    function HLC_Max  (Left, Right : HLC_Time) return HLC_Time;
 
@@ -65,14 +79,20 @@ package CRDT.Core is
      Default_Component_Value => 0;
 
    --  Strict vector-clock less-than: all entries <= and at least one <.
+   --  @param Left   Left vector clock.
+   --  @param Right  Right vector clock.
    --  @return True if Left is strictly behind Right.
    function VTime_Less (Left, Right : VTime) return Boolean;
 
    --  Non-strict vector-clock less-or-equal: all entries <=.
+   --  @param Left   Left vector clock.
+   --  @param Right  Right vector clock.
    --  @return True if Left is at or behind Right.
    function VTime_Leq  (Left, Right : VTime) return Boolean;
 
    --  Vector-clock equality: all entries match.
+   --  @param Left   Left vector clock.
+   --  @param Right  Right vector clock.
    --  @return True if Left and Right are identical.
    function VTime_Eq   (Left, Right : VTime) return Boolean;
 

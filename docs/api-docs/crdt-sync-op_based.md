@@ -38,14 +38,18 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Index` |  |
-| `Log` |  |
+| `Index` | 1-based index. |
+| `Log` | Operation log to query. |
+
+**Returns:** Operation at that index.
 
 ### function Size (Log : CRDT.Sync.Op_Based.Op_Log) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` |  |
+| `Log` | Operation log to query. |
+
+**Returns:** Count of operations not yet acknowledged.
 
 ## Procedures
 
@@ -53,18 +57,18 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` |  |
-| `Up_To_Seq` |  |
+| `Log` | Operation log to modify. |
+| `Up_To_Seq` | Acknowledge all operations with Seq <= this. |
 
 ### procedure Append (Log : CRDT.Sync.Op_Based.Op_Log; Op : CRDT.Sync.Op_Based.Operation)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` |  |
-| `Op` |  |
+| `Log` | Operation log to append to. |
+| `Op` | Operation to record. |
 
 ### procedure Compact (Log : CRDT.Sync.Op_Based.Op_Log)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` |  |
+| `Log` | Operation log to compact. |

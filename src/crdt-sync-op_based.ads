@@ -42,6 +42,7 @@ package CRDT.Sync.Op_Based is
    procedure Append (Log : in out Op_Log; Op : Operation);
 
    --  Number of unacknowledged operations.
+   --  @param Log  Operation log to query.
    --  @return Count of operations not yet acknowledged.
    function Size (Log : Op_Log) return Natural;
 

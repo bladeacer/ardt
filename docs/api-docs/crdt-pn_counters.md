@@ -21,21 +21,27 @@ Default_Initial_Condition;
 
 | Parameter | Description |
 |-----------|-------------|
-| `By` |  |
-| `C` |  |
+| `By` | Amount to decrement. |
+| `C` | The counter. |
+
+**Returns:** Always True.
 
 ### function Can_Increment (C : CRDT.Pn_Counters.PN_Counter; By : CRDT.Pn_Counters.Counter_Range) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `By` |  |
-| `C` |  |
+| `By` | Amount to increment. |
+| `C` | The counter. |
+
+**Returns:** Always True.
 
 ### function Value (C : CRDT.Pn_Counters.PN_Counter) return Standard.Integer
 
 | Parameter | Description |
 |-----------|-------------|
-| `C` |  |
+| `C` | The counter to query. |
+
+**Returns:** Net value (sum P minus sum N).
 
 ## Procedures
 
@@ -43,21 +49,21 @@ Default_Initial_Condition;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Actor` |  |
-| `By` |  |
-| `C` |  |
+| `Actor` | Replica performing the decrement. |
+| `By` | Amount to decrement (default 1). |
+| `C` | The counter to modify. |
 
 ### procedure Increment (C : CRDT.Pn_Counters.PN_Counter; By : CRDT.Pn_Counters.Counter_Range; Actor : CRDT.Core.Replica_Id)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Actor` |  |
-| `By` |  |
-| `C` |  |
+| `Actor` | Replica performing the increment. |
+| `By` | Amount to increment (default 1). |
+| `C` | The counter to modify. |
 
 ### procedure Merge (Target : CRDT.Pn_Counters.PN_Counter; Source : CRDT.Pn_Counters.PN_Counter)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Source` |  |
-| `Target` |  |
+| `Source` | Counter to merge from. |
+| `Target` | Counter to merge into. |
