@@ -1,6 +1,6 @@
 name = "crdt"
 description = "CRDT library for Ada/SPARK"
-version = "1.4.0"
+version = "1.3.0"
 
 authors = ["bladeacer"]
 maintainers = ["bladeacer <wg.nick.exe@gmail.com>"]
