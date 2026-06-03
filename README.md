@@ -112,6 +112,8 @@ Package: `CRDT.Rga` (default engine) or `CRDT.Sequences.<Engine>`
 | Naive | `CRDT.Sequences.Naive` | Flat linked-list per element | Simple, O(n) lookups |
 | Fugue | `CRDT.Sequences.Fugue` | BST tree with Depth ordering | Anti-interleaving, no GC rebalancing yet |
 
+> It **helps to understand how suitable** each backend is for a given use case.
+
 ```ada
 -- Switch engine by changing the with line
 with CRDT.Sequences.Naive;
@@ -273,7 +275,9 @@ mimicking real-world gossip protocol behaviours.
 utilizing linear array pointer scans and an internal O(n²) bubble-sort under
 high-frequency load.
 
-> tldr; RGA is not a great CRDT type for Conway's Game of Life unlike `LWW_Element_Set`.
+> tldr; yjs RGA is not a great CRDT type for Conway's Game of Life unlike `LWW_Element_Set`.
+>
+> As mentioned earlier, it **helps to understand how suitable** each backend is for a given use case.
 
 - Zero-Heap Footprint: Relies on `CRDT.Bounded` types to completely eliminate
 runtime allocation leaks during explosive cell birth/death cycles.
