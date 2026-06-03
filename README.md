@@ -218,6 +218,7 @@ All serialized CRDT state begins with `Core.Protocol_Version` (currently `1`):
 | `make build` | Build library + tests |
 | `make run` / `make test` | Run test suite (see [test results](test_result.md)) |
 | `make prove` | SPARK proofs via `alr gnatprove` |
+| `make demo` | Run Conway Game of Life Demo |
 | `make doc` | Generate Markdown API docs (see `docs/api-docs/`) |
 | `make clean` | Remove build artifacts |
 

@@ -9,10 +9,5 @@ licenses = "MIT"
 website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada"]
 
-executables = ["test_crdt"]
-
-[[depends-on]]
-gnatprove = "^15.1.0"
-
-[[depends-on]]
-gnatdoc_bin = "^26.0.0"
+[origin]
+url = "https://codeberg.org/bladeacer/Ada_CRDT/archive/v1.2.0.tar.gz"

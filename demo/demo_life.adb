@@ -1,6 +1,7 @@
 with Ada.Text_IO; use Ada.Text_IO;
 with Ada.Characters.Latin_1;
 with Ada.Numerics.Discrete_Random;
+with Ada.Numerics.Float_Random;
 with CRDT.Core;
 with CRDT.Lww_Element_Sets;
 with CRDT.Rga;
@@ -37,23 +38,20 @@ procedure Demo_Life is
    type Grid_Mode is (Matrix, Yjs_RGA);
 
    type Node is record
-      Cells      : Cell_Sets.LWW_Element_Set (Cell_Sets.Max_Capacity);
-      Yjs_Cells  : RGA_Grid;
-      Seq        : Natural := 0;
-      Clock      : CRDT.Core.Lamport_Time;
-      Id         : CRDT.Core.Replica_Id;
-      Paused     : Boolean := False;
+      Cells       : Cell_Sets.LWW_Element_Set (Cell_Sets.Max_Capacity);
+      Yjs_Cells   : RGA_Grid;
+      Seq         : Natural := 0;
+      Clock       : CRDT.Core.Lamport_Time;
+      Id          : CRDT.Core.Replica_Id;
+      Paused      : Boolean := False;
+      Pause_Timer : Duration := 0.0;
    end record;
 
    type App_State is record
       N1, N2, N3   : Node;
       Gen          : Natural := 0;
-      Focus        : Integer := 1;
-      Cur_R, Cur_C : Integer := 1;
-      Partition    : Boolean := False;
-      Auto         : Boolean := True;
+      Paused       : Boolean := False;
       Running      : Boolean := True;
-      Converged    : Boolean := True;
       Mode         : Grid_Mode := Matrix;
    end record;
 
@@ -69,7 +67,8 @@ procedure Demo_Life is
 
    subtype Rand_Range is Integer range 1 .. Grid_Size;
    package Nat_Random is new Ada.Numerics.Discrete_Random (Rand_Range);
-   Gen : Nat_Random.Generator;
+   Nat_Gen : Nat_Random.Generator;
+   Float_Gen : Ada.Numerics.Float_Random.Generator;
 
    function Is_Alive (N : Node; Row, Col : Integer) return Boolean is
      (Cell_Sets.Contains (N.Cells, (Row, Col)));
@@ -205,24 +204,6 @@ procedure Demo_Life is
       end case;
    end Merge_Nodes;
 
-   function Check_Converged (S : App_State) return Boolean is
-   begin
-      for R in 1 .. Grid_Size loop
-         for C in 1 .. Grid_Size loop
-            declare
-               V1 : constant Boolean := (if S.Mode = Matrix then Is_Alive (S.N1, R, C) else Yjs_Is_Alive (S.N1, R, C));
-               V2 : constant Boolean := (if S.Mode = Matrix then Is_Alive (S.N2, R, C) else Yjs_Is_Alive (S.N2, R, C));
-               V3 : constant Boolean := (if S.Mode = Matrix then Is_Alive (S.N3, R, C) else Yjs_Is_Alive (S.N3, R, C));
-            begin
-               if V1 /= V2 or V2 /= V3 then
-                  return False;
-               end if;
-            end;
-         end loop;
-      end loop;
-      return True;
-   end Check_Converged;
-
    procedure Sync_Yjs_From_Matrix (N : in out Node) is
    begin
       for R in 1 .. Grid_Size loop
@@ -275,6 +256,7 @@ procedure Demo_Life is
       New_Id1 : constant CRDT.Core.Replica_Id := CRDT.Core.New_Replica_Id;
       New_Id2 : constant CRDT.Core.Replica_Id := CRDT.Core.New_Replica_Id;
       New_Id3 : constant CRDT.Core.Replica_Id := CRDT.Core.New_Replica_Id;
+      Dt : Duration;
    begin
       Cell_Sets.Clear (S.N1.Cells);
       Cell_Sets.Clear (S.N2.Cells);
@@ -291,11 +273,11 @@ procedure Demo_Life is
       Init_Glider (S.N1, 2, 2);
       Init_Glider (S.N2, 2, 2);
       Init_Glider (S.N3, 2, 2);
-      Nat_Random.Reset (Gen, 42);
+      Nat_Random.Reset (Nat_Gen, 42);
       for I in 1 .. Grid_Size * Grid_Size * 3 / 10 - 5 loop
          declare
-            RR : constant Integer := (Nat_Random.Random (Gen) mod Grid_Size) + 1;
-            CC : constant Integer := (Nat_Random.Random (Gen) mod Grid_Size) + 1;
+            RR : constant Integer := (Nat_Random.Random (Nat_Gen) mod Grid_Size) + 1;
+            CC : constant Integer := (Nat_Random.Random (Nat_Gen) mod Grid_Size) + 1;
          begin
             S.N1.Clock.Stamp := S.N1.Clock.Stamp + 1;
             Cell_Sets.Add (S.N1.Cells, (RR, CC), S.N1.Clock);
@@ -309,36 +291,16 @@ procedure Demo_Life is
       Sync_Yjs_From_Matrix (S.N2);
       Sync_Yjs_From_Matrix (S.N3);
       S.Gen := 0;
-      S.Cur_R := 1;
-      S.Cur_C := 1;
-      S.Partition := False;
-      S.Auto := True;
+      S.Paused := False;
       S.Mode := Matrix;
-      S.N1.Paused := False;
-      S.N2.Paused := False;
-      S.N3.Paused := False;
+      Ada.Numerics.Float_Random.Reset (Float_Gen, 42);
+      Dt := Duration (Ada.Numerics.Float_Random.Random (Float_Gen) * 5.0);
+      S.N1.Pause_Timer := Dt;
+      Dt := Duration (Ada.Numerics.Float_Random.Random (Float_Gen) * 5.0);
+      S.N2.Pause_Timer := Dt;
+      Dt := Duration (Ada.Numerics.Float_Random.Random (Float_Gen) * 5.0);
+      S.N3.Pause_Timer := Dt;
    end Reset_State;
-
-   procedure Toggle_Cell (N : in out Node; Row, Col : Integer; M : Grid_Mode) is
-   begin
-      case M is
-         when Matrix =>
-            N.Clock.Stamp := N.Clock.Stamp + 1;
-            if Is_Alive (N, Row, Col) then
-               Cell_Sets.Remove (N.Cells, (Row, Col), N.Clock);
-            else
-               Cell_Sets.Add (N.Cells, (Row, Col), N.Clock);
-            end if;
-         when Yjs_RGA =>
-            declare
-               Alive : constant Boolean := Yjs_Is_Alive (N, Row, Col);
-            begin
-               Char_RGA.Delete (N.Yjs_Cells (Row), Col);
-               N.Seq := N.Seq + 1;
-               Char_RGA.Insert (N.Yjs_Cells (Row), Col, (N.Id, N.Seq), (if Alive then '.' else '#'));
-            end;
-      end case;
-   end Toggle_Cell;
 
    function Alive_Count (N : Node; M : Grid_Mode) return Natural is
       C : Natural := 0;
@@ -376,86 +338,57 @@ procedure Demo_Life is
 
    procedure Draw (S : App_State) is
 
-      procedure Put_Grid_Row (N : Node; Row : Integer; Is_Focused : Boolean) is
-      begin
-         Put (V);
-         for C in 1 .. Grid_Size loop
-            declare
-               Alive : constant Boolean :=
-                 (if S.Mode = Matrix then Is_Alive (N, Row, C) else Yjs_Is_Alive (N, Row, C));
-               Ch : constant Character := (if Alive then '*' else '.');
-            begin
-               if Is_Focused and Row = S.Cur_R and C = S.Cur_C then
-                  VT100.Set_Attribute (VT100.Revers);
-                  Put (Ch);
-                  VT100.Set_Attribute (VT100.Reset);
-               else
-                  Put (Ch);
-               end if;
-            end;
-         end loop;
-         Put (V);
-      end Put_Grid_Row;
-
       Grid_Border : constant String (1 .. Grid_Size) := (others => '-');
+
+      function Node_Label (N : Node; Tag : Character) return String is
+         Tag_Str : constant String (1 .. 2) := " " & Tag;
+         P_Str   : constant String := (if N.Paused then " PAUSED" else "");
+      begin
+         return "+-" & Tag_Str & P_Str & Pad ("", Natural'Max (0, Box_W - 5 - P_Str'Length)) & "+";
+      end Node_Label;
 
    begin
       VT100.Move_Cursor (0, 0);
       Put_Line (TL & (1 .. Line_W - 2 => '=') & TR);
       declare
          Gen_S  : constant String := "Gen:" & Image_Trim (S.Gen);
-         P1_S   : constant String := (if S.N1.Paused then "ON" else "OFF");
-         P2_S   : constant String := (if S.N2.Paused then "ON" else "OFF");
-         P3_S   : constant String := (if S.N3.Paused then "ON" else "OFF");
-         Mode_S : constant String := (case S.Mode is when Matrix => "Matrix", when Yjs_RGA => "Yjs_RGA");
-         Part_S : constant String := (if S.Partition then "Part:ON" else "Part:OFF");
-         Auto_S : constant String := (if S.Auto then "Auto:ON" else "Auto:OFF");
-         Foc_S  : constant String := "Focus:" & (case S.Focus is when 1 => "A", when 2 => "B", when others => "C");
-         Conv_S : constant String := (if S.Converged then "OK" else "DIVERGED");
-         Status : constant String := Gen_S & " Paused:A:" & P1_S & " B:" & P2_S & " C:" & P3_S
-           & " Mode:" & Mode_S & " " & Part_S & " " & Auto_S & " " & Foc_S & " " & Conv_S;
+         Mode_S : constant String := (case S.Mode is when Matrix => "Mode:Matrix",
+                                       when Yjs_RGA => "Mode:Yjs_RGA");
+         Stat_S : constant String := (if S.Paused then "PAUSED" else "Running");
+         Status : constant String := " Ada CRDT | " & Gen_S & " | " & Mode_S
+           & " | " & Stat_S;
       begin
          Put (V);
          Put (Status);
-          Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - Status'Length)) & V);
-      end;
-      declare
-         P1_Label : constant String := (if S.N1.Paused then " PAUSED" else "");
-         P2_Label : constant String := (if S.N2.Paused then " PAUSED" else "");
-         P3_Label : constant String := (if S.N3.Paused then " PAUSED" else "");
-         Label_A : constant String := " +-- Node A" & P1_Label
-           & Pad ("", Natural'Max (0, Box_W - 12 - P1_Label'Length)) & "+";
-         Label_B : constant String := " +-- Node B" & P2_Label
-           & Pad ("", Natural'Max (0, Box_W - 12 - P2_Label'Length)) & "+";
-         Label_C : constant String := " +-- Node C" & P3_Label
-           & Pad ("", Natural'Max (0, Box_W - 12 - P3_Label'Length)) & "+";
-      begin
-         Put (V);
-         Put (' ');
-         Put (Label_A);
-         Put (Pad ("", Sep));
-         Put (Label_B);
-         Put (Pad ("", Sep));
-         Put (Label_C);
-         Put_Line (" " & V);
+         Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - Status'Length)) & V);
       end;
       for R in 1 .. Grid_Size loop
          Put (V);
          Put (' ');
-         Put_Grid_Row (S.N1, R, S.Focus = 1);
+         for C in 1 .. Grid_Size loop
+            Put ((if (if S.Mode = Matrix then Is_Alive (S.N1, R, C)
+                      else Yjs_Is_Alive (S.N1, R, C)) then '*' else '.'));
+         end loop;
+         Put (V);
          Put (Pad ("", Sep));
-         Put_Grid_Row (S.N2, R, S.Focus = 2);
+         for C in 1 .. Grid_Size loop
+            Put ((if (if S.Mode = Matrix then Is_Alive (S.N2, R, C)
+                      else Yjs_Is_Alive (S.N2, R, C)) then '*' else '.'));
+         end loop;
+         Put (V);
          Put (Pad ("", Sep));
-         Put_Grid_Row (S.N3, R, S.Focus = 3);
+         for C in 1 .. Grid_Size loop
+            Put ((if (if S.Mode = Matrix then Is_Alive (S.N3, R, C)
+                      else Yjs_Is_Alive (S.N3, R, C)) then '*' else '.'));
+         end loop;
          Put_Line (" " & V);
       end loop;
       Put (V);
-      Put (" +" & Grid_Border & "+");
+      Put (" " & Node_Label (S.N1, 'A'));
       Put (Pad ("", Sep));
-      Put (" +" & Grid_Border & "+");
+      Put (Node_Label (S.N2, 'B'));
       Put (Pad ("", Sep));
-      Put (" +" & Grid_Border & "+");
-      Put_Line (" " & V);
+      Put_Line (Node_Label (S.N3, 'C') & "  " & V);
       declare
          A_Alive : constant String := " Alive:" & Image_Trim (Alive_Count (S.N1, S.Mode));
          B_Alive : constant String := " Alive:" & Image_Trim (Alive_Count (S.N2, S.Mode));
@@ -474,51 +407,17 @@ procedure Demo_Life is
          Put_Line (" " & V);
       end;
       Put_Line (TL & (1 .. Line_W - 2 => '-') & TR);
-
-      declare
-         Mode_Label : constant String := (case S.Mode is when Matrix => " Matrix ", when Yjs_RGA => " Yjs_RGA ");
-         P1_Label   : constant String := (if S.N1.Paused then "A:Paused" else "A:Running");
-         P2_Label   : constant String := (if S.N2.Paused then "B:Paused" else "B:Running");
-         P3_Label   : constant String := (if S.N3.Paused then "C:Paused" else "C:Running");
-         Title      : constant String := "   Ada CRDT  |  Mode:" & Mode_Label & " |  " & P1_Label & " " & P2_Label & " " & P3_Label & "  ";
-      begin
-         Put_Line (V & Pad (Title, Line_W - 2) & V);
-      end;
-
       Put (V);
-      Put ("["); VT100.Set_Attribute (VT100.Revers); Put ("Space"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]Step  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("T"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]oggle  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("Z"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]Pause  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("P"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]artition  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("M"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]erge  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("C"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]heck");
-      Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - 61)) & V);
-
-      Put (V);
-      Put ("["); VT100.Set_Attribute (VT100.Revers); Put ("Q"); VT100.Set_Attribute (VT100.Reset);
+      Put ("  ["); VT100.Set_Attribute (VT100.Revers); Put ("Q"); VT100.Set_Attribute (VT100.Reset);
       Put ("]uit  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("A"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]uto  [");
       VT100.Set_Attribute (VT100.Revers); Put ("R"); VT100.Set_Attribute (VT100.Reset);
       Put ("]eset  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("1/2/3"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]Focus  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("h/j/k/l"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]Move  [");
+      VT100.Set_Attribute (VT100.Revers); Put ("P"); VT100.Set_Attribute (VT100.Reset);
+      Put ("]ause  [");
       VT100.Set_Attribute (VT100.Revers); Put ("Y"); VT100.Set_Attribute (VT100.Reset);
       Put ("]js");
-      Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - 59)) & V);
-
+      Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - 35)) & V);
       Put_Line (BL & (1 .. Line_W - 2 => '=') & BR);
-      if S.Auto then
-         Put (V & Pad ("(* auto-stepping *)", Line_W - 2) & V & ASCII.CR);
-      end if;
       Flush;
    end Draw;
 
@@ -527,83 +426,10 @@ procedure Demo_Life is
       case Ch is
          when 'q' | 'Q' =>
             S.Running := False;
-         when ' ' =>
-            if not S.N1.Paused then
-               Next_Generation (S.N1, S.Mode);
-            end if;
-            if not S.N2.Paused then
-               Next_Generation (S.N2, S.Mode);
-            end if;
-            if not S.N3.Paused then
-               Next_Generation (S.N3, S.Mode);
-            end if;
-            S.Gen := S.Gen + 1;
-            if not S.Partition then
-               Merge_Nodes (S.N1, S.N2, S.Mode);
-               Merge_Nodes (S.N1, S.N3, S.Mode);
-            end if;
-            S.Converged := Check_Converged (S);
-         when 't' | 'T' =>
-            if S.Focus = 1 then
-               Toggle_Cell (S.N1, S.Cur_R, S.Cur_C, S.Mode);
-            elsif S.Focus = 2 then
-               Toggle_Cell (S.N2, S.Cur_R, S.Cur_C, S.Mode);
-            else
-               Toggle_Cell (S.N3, S.Cur_R, S.Cur_C, S.Mode);
-            end if;
-            if not S.Partition then
-               Merge_Nodes (S.N1, S.N2, S.Mode);
-               Merge_Nodes (S.N1, S.N3, S.Mode);
-            end if;
-            S.Converged := Check_Converged (S);
-         when 'z' | 'Z' =>
-            if S.Focus = 1 then
-               S.N1.Paused := not S.N1.Paused;
-            elsif S.Focus = 2 then
-               S.N2.Paused := not S.N2.Paused;
-            else
-               S.N3.Paused := not S.N3.Paused;
-            end if;
          when 'p' | 'P' =>
-            S.Partition := not S.Partition;
-            if not S.Partition then
-               Merge_Nodes (S.N1, S.N2, S.Mode);
-               Merge_Nodes (S.N1, S.N3, S.Mode);
-               S.Converged := Check_Converged (S);
-            end if;
-         when 'm' | 'M' =>
-            Merge_Nodes (S.N1, S.N2, S.Mode);
-            Merge_Nodes (S.N1, S.N3, S.Mode);
-            S.Converged := Check_Converged (S);
-         when 'c' | 'C' =>
-            S.Converged := Check_Converged (S);
-         when 'a' | 'A' =>
-            S.Auto := not S.Auto;
+            S.Paused := not S.Paused;
          when 'r' | 'R' =>
             Reset_State (S);
-            S.Converged := Check_Converged (S);
-         when 'h' | 'H' =>
-            if S.Cur_C > 1 then
-               S.Cur_C := S.Cur_C - 1;
-            end if;
-         when 'l' | 'L' =>
-            if S.Cur_C < Grid_Size then
-               S.Cur_C := S.Cur_C + 1;
-            end if;
-         when 'k' | 'K' =>
-            if S.Cur_R > 1 then
-               S.Cur_R := S.Cur_R - 1;
-            end if;
-         when 'j' | 'J' =>
-            if S.Cur_R < Grid_Size then
-               S.Cur_R := S.Cur_R + 1;
-            end if;
-         when '1' =>
-            S.Focus := 1;
-         when '2' =>
-            S.Focus := 2;
-         when '3' =>
-            S.Focus := 3;
          when 'y' | 'Y' =>
             if S.Mode = Matrix then
                S.Mode := Yjs_RGA;
@@ -616,10 +442,27 @@ procedure Demo_Life is
                Sync_Matrix_From_Yjs (S.N2);
                Sync_Matrix_From_Yjs (S.N3);
             end if;
-            S.Converged := Check_Converged (S);
+            VT100.Clear_Screen;
          when others => null;
       end case;
    end Handle_Input;
+
+   procedure Tick_Pause_Timers (S : in out App_State; Dt : Duration) is
+      procedure Tick_Node (N : in out Node) is
+      begin
+         N.Pause_Timer := N.Pause_Timer - Dt;
+         if N.Pause_Timer <= 0.0 then
+            N.Paused := not N.Paused;
+            N.Pause_Timer := Duration (Ada.Numerics.Float_Random.Random (Float_Gen) * 5.0);
+         end if;
+      end Tick_Node;
+   begin
+      Tick_Node (S.N1);
+      Tick_Node (S.N2);
+      Tick_Node (S.N3);
+   end Tick_Pause_Timers;
+
+   Step_Dt : constant Duration := 0.15;
 
    S : App_State;
 
@@ -628,21 +471,13 @@ begin
    VT100.Clear_Screen;
    VT100.Move_Cursor (0, 0);
    Put (Hide);
-   S.Converged := Check_Converged (S);
 
    loop
       Draw (S);
 
-      if S.Auto then
-         if S.Gen mod 5 = 0 then
-            case (S.Gen / 5) mod 3 is
-               when 0 => S.N1.Paused := not S.N1.Paused;
-               when 1 => S.N2.Paused := not S.N2.Paused;
-               when others => S.N3.Paused := not S.N3.Paused;
-            end case;
-         end if;
+      if not S.Paused then
+         Tick_Pause_Timers (S, Step_Dt);
 
-         delay 0.15;
          if not S.N1.Paused then
             Next_Generation (S.N1, S.Mode);
          end if;
@@ -653,11 +488,11 @@ begin
             Next_Generation (S.N3, S.Mode);
          end if;
          S.Gen := S.Gen + 1;
-         if not S.Partition then
-            Merge_Nodes (S.N1, S.N2, S.Mode);
-            Merge_Nodes (S.N1, S.N3, S.Mode);
-         end if;
-         S.Converged := Check_Converged (S);
+
+         Merge_Nodes (S.N1, S.N2, S.Mode);
+         Merge_Nodes (S.N1, S.N3, S.Mode);
+
+         delay Step_Dt;
       end if;
 
       for Attempt in 1 .. 10 loop
@@ -671,10 +506,11 @@ begin
                exit;
             end if;
          end;
-         if not S.Auto then
+         if S.Paused then
+            delay 0.01;
+         else
             exit;
          end if;
-         delay 0.01;
       end loop;
 
       exit when not S.Running;
