@@ -12,25 +12,44 @@ with CRDT.Core;
 
 package CRDT.HLC is
 
+   --  HLC timestamp wrapping Core's HLC_Time.
    type HLC_Time is new Core.HLC_Time;
 
+   --  HLC clock instance tracking physical time and logical component.
    type Instance is private;
 
+   --  Create a new HLC instance for the given node.
+   --  @param Node  Replica identifier.
+   --  @return  Initialized HLC clock.
    function Create (Node : Core.Replica_Id) return Instance;
 
    --  Advance the local clock. Call before attaching a timestamp
    --  to an outgoing message or event.
+   --  @param Clock  HLC instance to tick.
    procedure Tick (Clock : in out Instance);
 
    --  Merge with a received remote timestamp.
    --  Ensures the local clock always advances past the received value,
    --  preserving causal ordering across replicas.
+   --  @param Clock   Local HLC instance.
+   --  @param Remote  Timestamp received from a remote peer.
    procedure Recv (Clock : in out Instance; Remote : HLC_Time);
 
+   --  Read the current HLC timestamp.
+   --  @param Clock  HLC instance to query.
+   --  @return  Current HLC timestamp.
    function Now (Clock : Instance) return HLC_Time;
 
+   --  HLC less-than: compares Wall, then Log, then Node.
+   --  @return True if Left causally precedes Right.
    function "<" (Left, Right : HLC_Time) return Boolean;
+
+   --  HLC equality: all three fields must match.
+   --  @return True if timestamps are identical.
    function "=" (Left, Right : HLC_Time) return Boolean;
+
+   --  HLC greater-than: inverse of "<".
+   --  @return True if Left causally follows Right.
    function ">" (Left, Right : HLC_Time) return Boolean;
 
 private
@@ -41,9 +60,10 @@ private
       Log  : Natural := 0;
    end record;
 
+   --  Expression function for efficient Now access.
    function Now (Clock : Instance) return HLC_Time is
      (HLC_Time'(Wall => Clock.Wall,
-                Node => Clock.Node,
-                Log  => Clock.Log));
+                 Node => Clock.Node,
+                 Log  => Clock.Log));
 
 end CRDT.HLC;

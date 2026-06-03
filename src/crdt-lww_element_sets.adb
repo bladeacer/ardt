@@ -2,6 +2,12 @@ package body CRDT.Lww_Element_Sets with
   SPARK_Mode
 is
 
+   procedure Clear (S : in out LWW_Element_Set) is
+   begin
+      S.Add_Size := 0;
+      S.Remove_Size := 0;
+   end Clear;
+
    use type Core.Lamport_Time;
 
    function Find_Index (A    : Timestamp_Array;

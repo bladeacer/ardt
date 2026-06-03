@@ -239,6 +239,7 @@ Technology Stack:
 
 - [SPARK / Ada 2012](https://www.adacore.com/languages/spark) (AdaCore): formal verification
 - [Alire](https://alire.ada.dev): Ada/SPARK package manager
+- [VT100](https://github.com/darkestkhan/vt100): Minimal Ada VT100 API library
 
 Inspired by:
 

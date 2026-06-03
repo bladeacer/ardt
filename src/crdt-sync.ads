@@ -11,6 +11,8 @@ with CRDT.Core;
 package CRDT.Sync is
 
    --  State vector for tracking which per-replica updates a peer has seen.
+   --  Indexed by replica slot; each element is the highest sequence number
+   --  received from that replica.
    type State_Vector is array (Positive range <>) of Natural with
      Default_Component_Value => 0;
 

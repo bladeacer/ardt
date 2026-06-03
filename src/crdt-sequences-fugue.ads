@@ -5,6 +5,9 @@
 --
 --  Node_Id includes a Depth component for tree positioning.
 --  In-order traversal produces the document sequence.
+--
+--  @formal Element_Type  The type of elements stored in the sequence.
+--  @formal Max_Items     Maximum number of nodes.
 with Ada.Streams;
 with CRDT.Core;
 
@@ -15,6 +18,10 @@ package CRDT.Sequences.Fugue with
   SPARK_Mode
 is
 
+   --  Unique identifier with tree depth for anti-interleaving.
+   --  @field Replica  Replica that created this node.
+   --  @field Seq      Per-replica sequence number.
+   --  @field Depth    Tree depth for positional ordering.
    type Node_Id is record
       Replica : Core.Replica_Id;
       Seq     : Natural;
@@ -23,48 +30,106 @@ is
 
    type Element_Array is array (Positive range <>) of Element_Type;
 
+   --  Bounded Fugue RGA with pre-allocated node capacity.
    type RGA (Capacity : Positive) is private;
 
    --  Standard Ada iterator support
    type Cursor is private;
 
+   --  Check if cursor points to a valid element.
+   --  @return True if the cursor is not at the end.
    function Has_Element (Position : Cursor) return Boolean;
+
+   --  Check if cursor is valid within a specific container.
+   --  @return True if the cursor is within bounds.
    function Has_Element (Container : RGA; Position : Cursor) return Boolean;
+
+   --  Return cursor to the first visible element.
+   --  @return Cursor positioned at first element.
    function First (Container : RGA) return Cursor;
+
+   --  Advance cursor to the next visible element.
+   --  @param Position  Cursor to advance (modified in place).
    procedure Next (Container : RGA; Position : in out Cursor);
+
+   --  Read element at cursor position.
+   --  @return Element at the cursor's position.
    function Element (Container : RGA; Position : Cursor) return Element_Type;
 
+   --  Number of internal storage items (tree nodes).
+   --  @return Count of allocated nodes (includes tombstones).
    function Count (R : RGA) return Natural;
+
+   --  Total visible elements (excluding tombstones).
+   --  @return Number of non-deleted elements.
    function Size (R : RGA) return Natural;
+
+   --  Alias for Size.
+   --  @return Number of non-deleted elements.
    function Length (R : RGA) return Natural is (Size (R));
+
+   --  Get element at physical position (1-indexed).
+   --  @param R    The sequence.
+   --  @param Pos  1-based position.
+   --  @return Element at that position.
    function Get (R : RGA; Pos : Positive) return Element_Type;
 
+   --  Insert single element at physical position.
+   --  @param R      The sequence to modify.
+   --  @param Pos    1-based insertion position.
+   --  @param Id     Unique node identifier for this element.
+   --  @param Value  Element to insert.
    procedure Insert (R     : in out RGA;
                      Pos   : Positive;
                      Id    : Node_Id;
                      Value : Element_Type);
 
+   --  Insert multiple contiguous elements as a single Item block.
+   --  @param R       The sequence to modify.
+   --  @param Pos     1-based insertion position.
+   --  @param Id      Unique node identifier (used for first element).
+   --  @param Values  Array of elements to insert contiguously.
    procedure Insert_Bulk (R      : in out RGA;
-                          Pos    : Positive;
-                          Id     : Node_Id;
-                          Values : Element_Array);
+                           Pos    : Positive;
+                           Id     : Node_Id;
+                           Values : Element_Array);
 
+   --  Tombstone-delete element at physical position.
+   --  @param R    The sequence to modify.
+   --  @param Pos  1-based position of element to delete.
    procedure Delete (R   : in out RGA;
                      Pos : Positive);
 
+   --  Tombstone-delete the item with the given Node_Id.
+   --  @param R   The sequence to modify.
+   --  @param Id  Node identifier of the item to delete.
    procedure Delete_Node (R : in out RGA; Id : Node_Id);
 
+   --  Convergent merge: insert all Source items not in Target,
+   --  preserving causal order by Node_Id.
+   --  @param Target  The sequence to merge into.
+   --  @param Source  The sequence to merge from.
    procedure Merge (Target : in out RGA;
-                    Source : RGA);
+                     Source : RGA);
 
+   --  Structural equality: same Node_Id, content, and deletion status.
+   --  @return True if both sequences are identical.
    function "=" (Left, Right : RGA) return Boolean;
 
+   --  Physically remove all tombstoned items, reclaiming slots.
+   --  @param R  The sequence to compact.
    procedure Compact (R : in out RGA);
 
+   --  Serialize the RGA to a stream.
+   --  @param Stream  Output stream.
+   --  @param Item    RGA to serialize.
    procedure Write_RGA
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Item   : RGA);
 
+   --  Deserialize the RGA from a stream.
+   --  @param Stream  Input stream.
+   --  @param Item    Deserialized RGA.
    procedure Read_RGA
      (Stream : not null access Ada.Streams.Root_Stream_Type'Class;
       Item   : out RGA);

@@ -16,6 +16,8 @@ package CRDT.Bounded is
    subtype Bounded_PN_Counter is Pn_Counters.PN_Counter;
 
    --  Bounded LWW-Element-Set with a fixed capacity.
+   --  @formal Element_Type  Type of elements in the set.
+   --  @formal Max_Set_Size  Maximum number of distinct elements.
    generic
       type Element_Type is private;
       Max_Set_Size : Positive;
@@ -26,6 +28,10 @@ package CRDT.Bounded is
    end Bounded_LWW_Set;
 
    --  Bounded RGA with fixed item capacity and stride.
+   --  @formal Element_Type  Type of elements in the sequence.
+   --  @formal Max_Items     Maximum number of internal nodes.
+   --  @formal Max_Stride    Maximum block size for contiguous elements.
+   --  @formal Max_Replicas  Maximum distinct replicas for delta sync.
    generic
       type Element_Type is private;
       Max_Items    : Positive;

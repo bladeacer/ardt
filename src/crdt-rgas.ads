@@ -1,6 +1,12 @@
 --  Container for managing multiple RGA instances.
 --  Provides Append to collect replicas and Merge_All to converge
 --  all into the first entry.
+--
+--  @formal Element_Type   Type of elements stored in each RGA.
+--  @formal Max_RGA_Size   Capacity of each individual RGA.
+--  @formal Max_RGA_Count  Maximum number of RGA instances.
+--  @formal Max_Stride     Block size for chunk-based storage.
+--  @formal Max_Replicas   Maximum distinct replicas for delta sync.
 with CRDT.Rga;
 
 generic
@@ -23,18 +29,26 @@ is
 
    type RGA_Array is array (Positive range <>) of RGA_Entry;
 
+   --  Bounded collection of RGA instances.
    type RGAs (Count : Positive) is private;
 
    --  Number of RGA entries currently stored.
+   --  @return Current count of appended entries.
    function Size (RS : RGAs) return Natural;
 
    --  Get the RGA at the given index (1-based).
+   --  @param RS     The collection.
+   --  @param Index  1-based index.
+   --  @return RGA entry at that index.
    function Get (RS : RGAs; Index : Positive) return RGA_Entry;
 
    --  Append an RGA to the collection.
+   --  @param RS  The collection to append to.
+   --  @param R   RGA entry to append.
    procedure Append (RS : in out RGAs; R : RGA_Entry);
 
    --  Merge all RGAs into the first entry (index 1).
+   --  @param RS  The collection whose entries are merged.
    procedure Merge_All (RS : in out RGAs);
 
 private

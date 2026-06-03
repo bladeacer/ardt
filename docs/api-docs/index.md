@@ -15,6 +15,7 @@
 - [CRDT.Sync](crdt-sync.md)
 - [CRDT.Bounded.Bounded_LWW_Set](crdt-bounded-bounded_lww_set.md)
 - [CRDT.Bounded.Bounded_RGA](crdt-bounded-bounded_rga.md)
+- [CRDT.Core.LEB128](crdt-core-leb128.md)
 - [CRDT.Protected.Shared_LWW](crdt-protected-shared_lww.md)
 - [CRDT.Protected.Shared_RGA](crdt-protected-shared_rga.md)
 - [CRDT.Sequences.Fugue](crdt-sequences-fugue.md)

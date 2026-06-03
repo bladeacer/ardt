@@ -47,73 +47,52 @@ def parse_description(text):
 
 
 def parse_blocks(text):
-    """Parse RST directives into (kind, name, decl, params) tuples."""
-    lines = text.split("\n")
+    """Split RST text into (kind, name, decl, params, returns) blocks."""
     blocks = []
+    lines = text.split("\n")
     i = 0
     while i < len(lines):
-        m = re.match(
-            r'^\s*\.\. ada:(type|function|procedure)::\s+(.+)',
-            lines[i]
-        )
+        m = re.match(r"^\.\. ada-(type|function|procedure)::\s+(.+)$", lines[i])
         if m:
             kind = m.group(1)
-            rest = m.group(2).strip()
-
-            if kind == "type":
-                m2 = re.match(r'\S+\s+(\S+)', rest)
-                if not m2:
-                    i += 1
-                    continue
-                name = m2.group(1)
+            name = m.group(2).strip()
+            decl = ""
+            i += 1
+            while i < len(lines) and lines[i].strip() and lines[i].startswith(" "):
+                if decl:
+                    decl += "\n"
+                decl += lines[i].strip()
                 i += 1
-                while i < len(lines) and "code-block:: ada" not in lines[i]:
+            params = {}
+            returns = ""
+            while i < len(lines):
+                pm = re.match(r'^\s+:parameter\s+(\S+):\s*(.*)', lines[i])
+                if pm:
+                    pname = pm.group(1)
+                    pdesc = pm.group(2).strip()
                     i += 1
-                if i < len(lines):
-                    indent = len(lines[i]) - len(lines[i].lstrip())
-                    content_indent = indent + 3
-                    i += 1
-                    decl_lines = []
-                    while i < len(lines) and (
-                        (len(lines[i]) - len(lines[i].lstrip()) >= content_indent)
-                        if lines[i].strip() else True
-                    ):
+                    while i < len(lines) and lines[i].strip() and re.match(r'^\s{4,}', lines[i]):
                         if lines[i].strip():
-                            decl_lines.append(lines[i][content_indent:])
+                            pdesc += " " + lines[i].strip()
                         i += 1
-                    if decl_lines:
-                        blocks.append((kind, name, " ".join(decl_lines).strip(), ""))
-            else:
-                m2 = re.match(r'\S+\s+(\S+)', rest)
-                name = m2.group(1) if m2 else rest.split()[0] if rest else "?"
-                decl = rest
-                # Collect parameter descriptions
-                i += 1
-                params = {}
-                while i < len(lines):
-                    pm = re.match(r'^\s+:parameter\s+(\S+):\s*(.*)', lines[i])
-                    if pm:
-                        pname = pm.group(1)
-                        pdesc = pm.group(2).strip()
+                    params[pname] = pdesc
+                elif re.match(r'^\s+:returns:\s*(.*)', lines[i]):
+                    rm = re.match(r'^\s+:returns:\s*(.*)', lines[i])
+                    returns = rm.group(1).strip()
+                    i += 1
+                    while i < len(lines) and lines[i].strip() and re.match(r'^\s{4,}', lines[i]):
+                        if lines[i].strip():
+                            returns += " " + lines[i].strip()
                         i += 1
-                        while i < len(lines) and lines[i].strip() and re.match(r'^\s{4,}', lines[i]):
-                            if lines[i].strip():
-                                pdesc += " " + lines[i].strip()
-                            i += 1
-                        params[pname] = pdesc
-                    elif re.match(r'^\s+:returns:\s*(.*)', lines[i]):
-                        i += 1
-                        while i < len(lines) and lines[i].strip() and re.match(r'^\s{4,}', lines[i]):
-                            i += 1
-                    elif re.match(r'^\s*\.\. ada:', lines[i]):
-                        break
-                    elif re.match(r'^----', lines[i]):
-                        break
-                    elif re.match(r'^\S', lines[i]) and not lines[i].startswith(" "):
-                        break
-                    else:
-                        i += 1
-                blocks.append((kind, name, decl, params))
+                elif re.match(r'^\s*\.\. ada:', lines[i]):
+                    break
+                elif re.match(r'^----', lines[i]):
+                    break
+                elif re.match(r'^\S', lines[i]) and not lines[i].startswith(" "):
+                    break
+                else:
+                    i += 1
+            blocks.append((kind, name, decl, params, returns))
         else:
             i += 1
     return blocks
@@ -134,24 +113,27 @@ def render_package(title, desc, blocks):
         lines.append("")
 
     sections = {}
-    for kind, name, decl, params in blocks:
+    for kind, name, decl, params, returns in blocks:
         sec = {"type": "Types", "function": "Functions", "procedure": "Procedures"}.get(kind, "Other")
-        sections.setdefault(sec, []).append((name, decl, params))
+        sections.setdefault(sec, []).append((name, decl, (params, returns)))
 
     for sec in ["Types", "Functions", "Procedures"]:
         items = sections.get(sec)
         if not items:
             continue
         lines.append(f"## {sec}\n")
-        for name, decl, params in items:
+        for name, decl, params_returns in items:
+            params, returns = params_returns
             lines.append(f"### {name}\n")
             lines.append(f"```ada\n{decl}\n```\n")
             if params:
                 lines.append("| Parameter | Description |")
                 lines.append("|-----------|-------------|")
-                for pname, pdesc in params.items():
+                for pname, pdesc in sorted(params.items()):
                     lines.append(f"| `{pname}` | {pdesc} |")
                 lines.append("")
+            if returns:
+                lines.append(f"**Returns:** {returns}\n")
 
     return "\n".join(lines)
 

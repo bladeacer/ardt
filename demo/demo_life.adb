@@ -1,10 +1,15 @@
 with Ada.Text_IO; use Ada.Text_IO;
+with Ada.Characters.Latin_1;
 with CRDT.Core;
 with CRDT.Lww_Element_Sets;
+with VT100;
 
 procedure Demo_Life is
 
    Grid_Size : constant := 20;
+   Box_W     : constant := Grid_Size + 2;
+   Sep       : constant := 2;
+   Line_W    : constant := 4 + 2 * Box_W + Sep;
 
    type Cell is record
       Row, Col : Integer;
@@ -22,6 +27,27 @@ procedure Demo_Life is
       Clock : CRDT.Core.Lamport_Time;
       Id    : CRDT.Core.Replica_Id;
    end record;
+
+   type App_State is record
+      N1, N2        : Node;
+      Gen           : Natural := 0;
+      Focus         : Integer := 1;
+      Cur_R, Cur_C  : Integer := 1;
+      Partition     : Boolean := False;
+      Auto          : Boolean := False;
+      Running       : Boolean := True;
+      Converged     : Boolean := True;
+   end record;
+
+   TL : constant String := "+";
+   TR : constant String := "+";
+   BL : constant String := "+";
+   BR : constant String := "+";
+   V  : constant String := "|";
+
+   ESC  : constant Character := Ada.Characters.Latin_1.ESC;
+   Hide : constant String := ESC & "[?25l";
+   Show : constant String := ESC & "[?25h";
 
    function Is_Alive (N : Node; Row, Col : Integer) return Boolean is
      (Cell_Sets.Contains (N.Cells, (Row, Col)));
@@ -74,24 +100,11 @@ procedure Demo_Life is
                when Make_Dead =>
                   N.Clock.Stamp := N.Clock.Stamp + 1;
                   Cell_Sets.Remove (N.Cells, (R, C), N.Clock);
-               when None =>
-                  null;
+               when None => null;
             end case;
          end loop;
       end loop;
    end Next_Generation;
-
-   procedure Display (N : Node; Title : String) is
-   begin
-      Put_Line (Title);
-      for R in 1 .. Grid_Size loop
-         for C in 1 .. Grid_Size loop
-            Put (if Is_Alive (N, R, C) then '*' else '.');
-         end loop;
-         New_Line;
-      end loop;
-      New_Line;
-   end Display;
 
    procedure Merge_Nodes (N1, N2 : in out Node) is
    begin
@@ -99,24 +112,17 @@ procedure Demo_Life is
       Cell_Sets.Merge (N2.Cells, N1.Cells);
    end Merge_Nodes;
 
-   procedure Verify_Convergence (N1, N2 : Node) is
-      Same : Boolean := True;
+   function Check_Converged (N1, N2 : Node) return Boolean is
    begin
       for R in 1 .. Grid_Size loop
          for C in 1 .. Grid_Size loop
             if Is_Alive (N1, R, C) /= Is_Alive (N2, R, C) then
-               Same := False;
-               exit;
+               return False;
             end if;
          end loop;
-         exit when not Same;
       end loop;
-      if Same then
-         Put_Line ("SUCCESS: Both nodes converged to identical state!");
-      else
-         Put_Line ("FAILURE: Nodes did NOT converge!");
-      end if;
-   end Verify_Convergence;
+      return True;
+   end Check_Converged;
 
    procedure Init_Glider (N : in out Node; Row, Col : Integer) is
    begin
@@ -132,67 +138,271 @@ procedure Demo_Life is
       Cell_Sets.Add (N.Cells, (Row + 2, Col + 2), N.Clock);
    end Init_Glider;
 
-   N1, N2 : Node;
+   procedure Reset_State (S : in out App_State) is
+      New_Id1 : constant CRDT.Core.Replica_Id := CRDT.Core.New_Replica_Id;
+      New_Id2 : constant CRDT.Core.Replica_Id := CRDT.Core.New_Replica_Id;
+   begin
+      Cell_Sets.Clear (S.N1.Cells);
+      Cell_Sets.Clear (S.N2.Cells);
+      S.N1.Id := New_Id1;
+      S.N2.Id := New_Id2;
+      S.N1.Clock := (0, New_Id1);
+      S.N2.Clock := (0, New_Id2);
+      Init_Glider (S.N1, 2, 2);
+      Init_Glider (S.N2, 2, 2);
+      S.Gen := 0;
+      S.Cur_R := 1;
+      S.Cur_C := 1;
+      S.Partition := False;
+      S.Auto := False;
+   end Reset_State;
+
+   function Alive_Count (N : Node) return Natural is
+      C : Natural := 0;
+   begin
+      for R in 1 .. Grid_Size loop
+         for C2 in 1 .. Grid_Size loop
+            if Is_Alive (N, R, C2) then
+               C := C + 1;
+            end if;
+         end loop;
+      end loop;
+      return C;
+   end Alive_Count;
+
+   function Image_Trim (N : Natural) return String is
+      S : constant String := N'Image;
+   begin
+      return S (S'First + 1 .. S'Last);
+   end Image_Trim;
+
+   function Pad (S : String; W : Natural) return String is
+      P : String (1 .. W) := (others => ' ');
+   begin
+      if S'Length <= W then
+         P (1 .. S'Length) := S;
+      end if;
+      return P;
+   end Pad;
+
+   procedure Draw (S : App_State) is
+
+      procedure Put_Grid_Row (N : Node; Row : Integer;
+                              Is_Focused : Boolean) is
+      begin
+         Put (V);
+         for C in 1 .. Grid_Size loop
+            if Is_Focused and Row = S.Cur_R and C = S.Cur_C then
+               declare
+                  Ch : constant Character :=
+                    (if Is_Alive (N, Row, C) then '*' else '.');
+               begin
+                  VT100.Set_Attribute (VT100.Revers);
+                  Put (Ch);
+                  VT100.Set_Attribute (VT100.Reset);
+               end;
+            else
+               Put ((if Is_Alive (N, Row, C) then '*' else '.'));
+            end if;
+         end loop;
+         Put (V);
+      end Put_Grid_Row;
+
+      Grid_Border : constant String (1 .. Grid_Size) := (others => '-');
+
+   begin
+      VT100.Move_Cursor (0, 0);
+      --  Line 1: top border
+      Put_Line (TL & (1 .. Line_W - 2 => '=') & TR);
+      --  Line 2: status
+      declare
+         Gen_S  : constant String := "Gen:" & Image_Trim (S.Gen);
+         Part_S : constant String := (if S.Partition then "Part:ON" else "Part:OFF");
+         Foc_S  : constant String := "Focus:" & (case S.Focus is when 1 => "A", when others => "B");
+         Auto_S : constant String := (if S.Auto then "Auto:ON" else "Auto:OFF");
+         Conv_S : constant String := (if S.Converged then "OK" else "DIVERGED");
+         Status : constant String := Gen_S & " " & Part_S & " " & Foc_S & " " & Auto_S & " " & Conv_S;
+      begin
+         Put (V);
+         Put (Status);
+         Put_Line (Pad ("", Line_W - 2 - Status'Length) & V);
+      end;
+      --  Line 3: grid top borders
+      declare
+         Cur_S : constant String := (if S.Focus = 1
+                                     then " [" & Image_Trim (S.Cur_R) & "," & Image_Trim (S.Cur_C) & "]"
+                                     else "");
+         Label_A : constant String := " +-- Node A" & Cur_S & " " & Pad ("", Box_W - 13 - Cur_S'Length) & "+";
+      begin
+         Put (V);
+         Put (' ');
+         Put (Label_A);
+         Put (Pad ("", Sep));
+         Put (" +-- Node B " & Pad ("", Box_W - 13) & "+");
+         Put_Line (" " & V);
+      end;
+      --  Lines 4-23: grid rows (20)
+      for R in 1 .. Grid_Size loop
+         Put (V);
+         Put (' ');
+         Put_Grid_Row (S.N1, R, S.Focus = 1);
+         Put (Pad ("", Sep));
+         Put_Grid_Row (S.N2, R, S.Focus = 2);
+         Put_Line (" " & V);
+      end loop;
+      --  Line 24: grid bottom
+      Put (V);
+      Put (" +" & Grid_Border & "+");
+      Put (Pad ("", Sep));
+      Put (" +" & Grid_Border & "+");
+      Put_Line (" " & V);
+      --  Line 25: alive counts
+      declare
+         A_Alive : constant String := " Alive:" & Image_Trim (Alive_Count (S.N1));
+         B_Alive : constant String := " Alive:" & Image_Trim (Alive_Count (S.N2));
+         A_Full  : constant String := V & A_Alive & Pad ("", Box_W - 2 - A_Alive'Length) & V;
+         B_Full  : constant String := V & B_Alive & Pad ("", Box_W - 2 - B_Alive'Length) & V;
+      begin
+         Put (V);
+         Put (' ');
+         Put (A_Full);
+         Put (Pad ("", Sep));
+         Put (B_Full);
+         Put_Line (" " & V);
+      end;
+      --  Line 26: divider
+      Put_Line (TL & (1 .. Line_W - 2 => '-') & TR);
+      --  Lines 27-28: controls
+      Put_Line (V & Pad ("[Space]Step  [T]oggle  [P]artition  [M]erge  [C]heck",
+                         Line_W - 2) & V);
+      Put_Line (V & Pad ("[Q]uit  [A]uto  [R]eset  [1/2]Focus  [h/j/k/l]Move",
+                         Line_W - 2) & V);
+      --  Line 29: bottom border
+      Put_Line (BL & (1 .. Line_W - 2 => '=') & BR);
+      --  Auto-run indicator
+      if S.Auto then
+         Put (V & Pad ("(* auto-stepping *)", Line_W - 2) & V & ASCII.CR);
+      end if;
+      Flush;
+   end Draw;
+
+   procedure Handle_Input (S : in out App_State; Ch : Character) is
+   begin
+      case Ch is
+         when 'q' | 'Q' =>
+            S.Running := False;
+         when ' ' =>
+            Next_Generation (S.N1);
+            Next_Generation (S.N2);
+            S.Gen := S.Gen + 1;
+            if not S.Partition then
+               Merge_Nodes (S.N1, S.N2);
+            end if;
+            S.Converged := Check_Converged (S.N1, S.N2);
+         when 't' | 'T' =>
+            if S.Focus = 1 then
+               S.N1.Clock.Stamp := S.N1.Clock.Stamp + 1;
+               if Is_Alive (S.N1, S.Cur_R, S.Cur_C) then
+                  Cell_Sets.Remove (S.N1.Cells, (S.Cur_R, S.Cur_C), S.N1.Clock);
+               else
+                  Cell_Sets.Add (S.N1.Cells, (S.Cur_R, S.Cur_C), S.N1.Clock);
+               end if;
+            else
+               S.N2.Clock.Stamp := S.N2.Clock.Stamp + 1;
+               if Is_Alive (S.N2, S.Cur_R, S.Cur_C) then
+                  Cell_Sets.Remove (S.N2.Cells, (S.Cur_R, S.Cur_C), S.N2.Clock);
+               else
+                  Cell_Sets.Add (S.N2.Cells, (S.Cur_R, S.Cur_C), S.N2.Clock);
+               end if;
+            end if;
+            if not S.Partition then
+               Merge_Nodes (S.N1, S.N2);
+            end if;
+            S.Converged := Check_Converged (S.N1, S.N2);
+         when 'p' | 'P' =>
+            S.Partition := not S.Partition;
+            if not S.Partition then
+               Merge_Nodes (S.N1, S.N2);
+               S.Converged := Check_Converged (S.N1, S.N2);
+            end if;
+         when 'm' | 'M' =>
+            Merge_Nodes (S.N1, S.N2);
+            S.Converged := Check_Converged (S.N1, S.N2);
+         when 'c' | 'C' =>
+            S.Converged := Check_Converged (S.N1, S.N2);
+         when 'a' | 'A' =>
+            S.Auto := not S.Auto;
+         when 'r' | 'R' =>
+            Reset_State (S);
+            S.Converged := Check_Converged (S.N1, S.N2);
+         when 'h' | 'H' =>
+            if S.Cur_C > 1 then
+               S.Cur_C := S.Cur_C - 1;
+            end if;
+         when 'l' | 'L' =>
+            if S.Cur_C < Grid_Size then
+               S.Cur_C := S.Cur_C + 1;
+            end if;
+         when 'k' | 'K' =>
+            if S.Cur_R > 1 then
+               S.Cur_R := S.Cur_R - 1;
+            end if;
+         when 'j' | 'J' =>
+            if S.Cur_R < Grid_Size then
+               S.Cur_R := S.Cur_R + 1;
+            end if;
+         when '1' =>
+            S.Focus := 1;
+         when '2' =>
+            S.Focus := 2;
+         when others => null;
+      end case;
+   end Handle_Input;
+
+   S : App_State;
 
 begin
-   Put_Line ("=== Conway's Game of Life: CRDT Merge Demo ===");
-   New_Line;
+   Reset_State (S);
+   VT100.Clear_Screen;
+   VT100.Move_Cursor (0, 0);
+   Put (Hide);
+   S.Converged := Check_Converged (S.N1, S.N2);
 
-   N1.Id := CRDT.Core.New_Replica_Id;
-   N2.Id := CRDT.Core.New_Replica_Id;
-   N1.Clock := (0, N1.Id);
-   N2.Clock := (0, N2.Id);
+   loop
+      Draw (S);
 
-   Init_Glider (N1, 2, 2);
-   Init_Glider (N2, 2, 2);
+      if S.Auto then
+         delay 0.15;
+         Next_Generation (S.N1);
+         Next_Generation (S.N2);
+         S.Gen := S.Gen + 1;
+         if not S.Partition then
+            Merge_Nodes (S.N1, S.N2);
+         end if;
+         S.Converged := Check_Converged (S.N1, S.N2);
+      end if;
 
-   Display (N1, "Initial state (both nodes identical):");
+      for Attempt in 1 .. 10 loop
+         declare
+            Ch : Character;
+            Avail : Boolean;
+         begin
+            Get_Immediate (Ch, Avail);
+            if Avail then
+               Handle_Input (S, Ch);
+               exit;
+            end if;
+         end;
+         if not S.Auto then
+            exit;
+         end if;
+         delay 0.01;
+      end loop;
 
-   for Gen in 1 .. 5 loop
-      Next_Generation (N1);
-      Next_Generation (N2);
+      exit when not S.Running;
    end loop;
 
-   Put_Line ("=== Cells are identical after 5 generations (no partition) ===");
-   Verify_Convergence (N1, N2);
+   Put (Show);
    New_Line;
-
-   Put_Line ("=== NETWORK PARTITION ===");
-   Put_Line ("N1: user manually ADDED cell (8, 8)");
-   N1.Clock.Stamp := N1.Clock.Stamp + 1;
-   Cell_Sets.Add (N1.Cells, (8, 8), N1.Clock);
-   Put_Line ("N2: user manually ADDED cell (12, 12)");
-   N2.Clock.Stamp := N2.Clock.Stamp + 1;
-   Cell_Sets.Add (N2.Cells, (12, 12), N2.Clock);
-   Put_Line ("N1: user toggles cell (10, 10) → ALIVE (add)");
-   N1.Clock.Stamp := N1.Clock.Stamp + 1;
-   Cell_Sets.Add (N1.Cells, (10, 10), N1.Clock);
-   Put_Line ("N2: user toggles cell (10, 10) → DEAD (remove)");
-   N2.Clock.Stamp := N2.Clock.Stamp + 1;
-   Cell_Sets.Remove (N2.Cells, (10, 10), N2.Clock);
-   New_Line;
-
-   Display (N1, "N1 state during partition:");
-   Display (N2, "N2 state during partition:");
-
-   Put_Line ("=== NETWORK HEALED - MERGING ===");
-   Merge_Nodes (N1, N2);
-   New_Line;
-
-   Display (N1, "N1 state after merge:");
-   Display (N2, "N2 state after merge:");
-
-   Verify_Convergence (N1, N2);
-   New_Line;
-
-   Put_Line ("Results:");
-   Put_Line ("  Cell (8,8)  present: N1="
-     & Boolean'Image (Is_Alive (N1, 8, 8))
-     & " N2=" & Boolean'Image (Is_Alive (N2, 8, 8)));
-   Put_Line ("  Cell (12,12) present: N1="
-     & Boolean'Image (Is_Alive (N1, 12, 12))
-     & " N2=" & Boolean'Image (Is_Alive (N2, 12, 12)));
-   Put_Line ("  Cell (10,10) present: N1="
-     & Boolean'Image (Is_Alive (N1, 10, 10))
-     & " N2=" & Boolean'Image (Is_Alive (N2, 10, 10)));
+   Put_Line ("Goodbye!");
 end Demo_Life;
