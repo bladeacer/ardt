@@ -228,45 +228,60 @@ is
       end if;
    end Delete_Node;
 
-   procedure Merge (Target : in out RGA; Source : RGA) is
-      T_Idx : Natural;
-      S_Idx : Natural;
-   begin
-      T_Idx := Target.Head;
-      S_Idx := Source.Head;
+    procedure Merge (Target : in out RGA; Source : RGA) is
+       type Src_Ref is record
+          Idx : Natural;
+          Id  : Node_Id;
+       end record;
+       type Src_Array is array (Positive range <>) of Src_Ref;
 
-      while S_Idx /= 0 loop
-         if Find_Node (Target, Source.Items (S_Idx).Id) /= 0 then
-            S_Idx := Source.Items (S_Idx).Next;
-         elsif T_Idx = 0 then
-            declare
-               New_Idx : Natural;
-            begin
-               while S_Idx /= 0 loop
-                  if Find_Node (Target, Source.Items (S_Idx).Id) = 0 then
-                     New_Idx := Copy_Item (Target, Source.Items (S_Idx));
-                     if New_Idx > 0 then
-                        Append_Item (Target, New_Idx);
-                     end if;
-                  end if;
-                  S_Idx := Source.Items (S_Idx).Next;
-               end loop;
-            end;
-            exit;
-         elsif Id_Less (Target.Items (T_Idx).Id, Source.Items (S_Idx).Id) then
-            T_Idx := Target.Items (T_Idx).Next;
-         else
-            declare
-               New_Idx : constant Natural := Copy_Item (Target, Source.Items (S_Idx));
-            begin
-               if New_Idx > 0 then
-                  Link_Before (Target, T_Idx, New_Idx);
-               end if;
-            end;
-            S_Idx := Source.Items (S_Idx).Next;
-         end if;
-      end loop;
-   end Merge;
+       Srcs     : Src_Array (1 .. Max_Items);
+       Src_Last : Natural := 0;
+       S_Idx    : Natural := Source.Head;
+    begin
+       while S_Idx /= 0 loop
+          if Find_Node (Target, Source.Items (S_Idx).Id) = 0 then
+             Src_Last := Src_Last + 1;
+             Srcs (Src_Last) := (Idx => S_Idx, Id => Source.Items (S_Idx).Id);
+          end if;
+          S_Idx := Source.Items (S_Idx).Next;
+       end loop;
+
+       for I in 1 .. Src_Last loop
+          for J in reverse I + 1 .. Src_Last loop
+             if Id_Less (Srcs (J).Id, Srcs (J - 1).Id) then
+                declare
+                   Tmp : constant Src_Ref := Srcs (J);
+                begin
+                   Srcs (J) := Srcs (J - 1);
+                   Srcs (J - 1) := Tmp;
+                end;
+             end if;
+          end loop;
+       end loop;
+
+       for I in 1 .. Src_Last loop
+          declare
+             New_Idx : constant Natural :=
+               Copy_Item (Target, Source.Items (Srcs (I).Idx));
+             T_Idx   : Natural := Target.Head;
+             Ins     : Boolean := False;
+          begin
+             if New_Idx > 0 then
+                while T_Idx /= 0 and not Ins loop
+                   if Id_Less (Srcs (I).Id, Target.Items (T_Idx).Id) then
+                      Link_Before (Target, T_Idx, New_Idx);
+                      Ins := True;
+                   end if;
+                   T_Idx := Target.Items (T_Idx).Next;
+                end loop;
+                if not Ins then
+                   Append_Item (Target, New_Idx);
+                end if;
+             end if;
+          end;
+       end loop;
+    end Merge;
 
    function "=" (Left, Right : RGA) return Boolean is
       L_Idx : Natural := Left.Head;

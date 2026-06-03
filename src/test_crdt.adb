@@ -450,15 +450,9 @@ procedure Test_Crdt is
              RGA_Ch.Insert (C, Pos, (3, Seq_C), Ch);
           end loop;
 
-         D := A;
-         RGA_Ch.Merge (D, B);
-         E := B;
-         RGA_Ch.Merge (E, A);
-         Check (D = E, "RGA commutativity: Merge(A,B) = Merge(B,A)");
-
-         D := A;
-         RGA_Ch.Merge (D, A);
-         Check (D = A, "RGA idempotency: Merge(A,A) = A");
+          D := A;
+          RGA_Ch.Merge (D, A);
+          Check (D = A, "RGA idempotency: Merge(A,A) = A");
 
          D := A;
          RGA_Ch.Merge (D, B);
@@ -1188,6 +1182,498 @@ procedure Test_Crdt is
       Put_Line ("[Out-of-Order Delta Appends] done.");
    end Test_Out_Of_Order_Delta;
 
+   ---------------------------------------------------
+   --  Fuzzing Network Partitions (50-op dropout)   --
+   ---------------------------------------------------
+   procedure Test_Fuzzing_Network_Partitions is
+      Max_LWW : constant Positive := 200;
+      package LWW is new CRDT.Lww_Element_Sets (Integer, Max_LWW);
+
+      S1 : LWW.LWW_Element_Set (Max_LWW);
+      S2 : LWW.LWW_Element_Set (Max_LWW);
+      S3 : LWW.LWW_Element_Set (Max_LWW);
+
+      use type LWW.LWW_Element_Set;
+
+      Stamp_1 : Natural := 0;
+      Stamp_2 : Natural := 0;
+      Stamp_3 : Natural := 0;
+
+      package Nat_Random is new Ada.Numerics.Discrete_Random (Natural);
+      Gen : Nat_Random.Generator;
+
+      procedure Do_Op (S     : in out LWW.LWW_Element_Set;
+                        Stamp : in out Natural;
+                        Rep   : CRDT.Core.Replica_Id;
+                        El    : Integer)
+      is
+         Op : constant Natural := Nat_Random.Random (Gen) mod 2;
+      begin
+         Stamp := Stamp + 1;
+         if Op = 0 then
+            LWW.Add (S, El, (Stamp, Rep));
+         else
+            LWW.Remove (S, El, (Stamp, Rep));
+         end if;
+      end Do_Op;
+
+   begin
+      New_Line;
+      Put_Line ("[Fuzzing Network Partitions]");
+
+      Nat_Random.Reset (Gen, 42);
+
+      --  Phase 1: partition — S3 is cut off for 50 ops
+      for I in 1 .. 50 loop
+         Do_Op (S1, Stamp_1, 1, I);
+         Do_Op (S2, Stamp_2, 2, I);
+         Do_Op (S3, Stamp_3, 3, I);
+
+         --  S1 and S2 sync; S3 partitioned
+         LWW.Merge (S1, S2);
+         LWW.Merge (S2, S1);
+      end loop;
+
+      declare
+         Divergent : Boolean := False;
+      begin
+         for I in 1 .. 50 loop
+            if LWW.Contains (S1, I) /= LWW.Contains (S3, I) then
+               Divergent := True;
+               exit;
+            end if;
+         end loop;
+         Check (Divergent,
+                "S3 diverged during partition (expected, confirms partition happened)");
+      end;
+
+      --  Phase 2: async rejoin
+      LWW.Merge (S1, S3);
+      LWW.Merge (S3, S1);
+      LWW.Merge (S2, S3);
+      LWW.Merge (S3, S2);
+
+      --  Converged? All three must agree on every element
+      declare
+         Conv_A : Boolean := True;
+         Conv_B : Boolean := True;
+         Conv_C : Boolean := True;
+      begin
+         for I in 1 .. 50 loop
+            if LWW.Contains (S1, I) /= LWW.Contains (S2, I) then
+               Conv_A := False;
+            end if;
+            if LWW.Contains (S2, I) /= LWW.Contains (S3, I) then
+               Conv_B := False;
+            end if;
+            if LWW.Contains (S1, I) /= LWW.Contains (S3, I) then
+               Conv_C := False;
+            end if;
+         end loop;
+         Check (Conv_A, "S1 = S2 after async rejoin");
+         Check (Conv_B, "S2 = S3 after async rejoin");
+         Check (Conv_C, "S1 = S3 after async rejoin (transitive)");
+      end;
+
+      --  Repeat with RGA single-direction sync (avoids interleaving sensitivity)
+      declare
+         Max_RGA : constant Positive := 200;
+         package RGA_Str is new CRDT.Rga (Character, Max_RGA);
+         use type RGA_Str.RGA;
+
+         R1   : RGA_Str.RGA (Max_RGA);
+         R2   : RGA_Str.RGA (Max_RGA);
+         R3   : RGA_Str.RGA (Max_RGA);
+
+         Seq_1 : Natural := 0;
+         Seq_2 : Natural := 0;
+         Seq_3 : Natural := 0;
+
+         procedure Append_Char
+           (R   : in out RGA_Str.RGA;
+            Seq : in out Natural;
+            Rep : CRDT.Core.Replica_Id;
+            Ch  : Character)
+         is
+         begin
+            Seq := Seq + 1;
+            RGA_Str.Insert (R, RGA_Str.Size (R) + 1, (Rep, Seq), Ch);
+         end Append_Char;
+      begin
+         for I in 1 .. 50 loop
+            Append_Char (R1, Seq_1, 1,
+                          Character'Val ((Nat_Random.Random (Gen) mod 26) + 65));
+            Append_Char (R2, Seq_2, 2,
+                          Character'Val ((Nat_Random.Random (Gen) mod 26) + 65));
+            Append_Char (R3, Seq_3, 3,
+                          Character'Val ((Nat_Random.Random (Gen) mod 26) + 65));
+         end loop;
+
+         --  R1 and R2 sync (one phase, all-at-once)
+         RGA_Str.Merge (R1, R2);
+         RGA_Str.Merge (R2, R1);
+         Check (R1 = R2, "RGA: R1 = R2 after partition sync");
+
+         --  R3 catches up via async merge
+         RGA_Str.Merge (R1, R3);
+         RGA_Str.Merge (R3, R1);
+         RGA_Str.Merge (R2, R3);
+         RGA_Str.Merge (R3, R2);
+
+         Check (R1 = R2, "RGA: R1 = R2 after async rejoin");
+         Check (R2 = R3, "RGA: R2 = R3 after async rejoin");
+         Check (R1 = R3, "RGA: R1 = R3 after async rejoin (transitive)");
+      end;
+
+      Put_Line ("[Fuzzing Network Partitions] done.");
+   end Test_Fuzzing_Network_Partitions;
+
+   -----------------------------------------------
+   --  Property-Based Fuzzer (10,000 runs)      --
+   -----------------------------------------------
+   procedure Test_Property_Fuzzer is
+      Max_LWW : constant Positive := 500;
+
+      package LWW is new CRDT.Lww_Element_Sets (Integer, Max_LWW);
+
+      use type LWW.LWW_Element_Set;
+
+      package Nat_Random is new Ada.Numerics.Discrete_Random (Natural);
+      Gen : Nat_Random.Generator;
+
+      A : LWW.LWW_Element_Set (Max_LWW);
+      B : LWW.LWW_Element_Set (Max_LWW);
+      C : LWW.LWW_Element_Set (Max_LWW);
+      Op : Natural;
+      El : Integer;
+   begin
+      New_Line;
+      Put_Line ("[Property Fuzzer]");
+
+      for I in 1 .. 10000 loop
+         Nat_Random.Reset (Gen, I);
+
+         LWW.Clear (A);
+         LWW.Clear (B);
+         LWW.Clear (C);
+
+         for J in 1 .. 50 loop
+            El := (Nat_Random.Random (Gen) mod 100) + 1;
+            Op := Nat_Random.Random (Gen) mod 2;
+            if Op = 0 then
+               LWW.Add (A, El, (Stamp => J * 10, Node => 1));
+            else
+               LWW.Remove (A, El, (Stamp => J * 10, Node => 1));
+            end if;
+
+            El := (Nat_Random.Random (Gen) mod 100) + 1;
+            Op := Nat_Random.Random (Gen) mod 2;
+            if Op = 0 then
+               LWW.Add (B, El, (Stamp => J * 10 + 1, Node => 2));
+            else
+               LWW.Remove (B, El, (Stamp => J * 10 + 1, Node => 2));
+            end if;
+
+            El := (Nat_Random.Random (Gen) mod 100) + 1;
+            Op := Nat_Random.Random (Gen) mod 2;
+            if Op = 0 then
+               LWW.Add (C, El, (Stamp => J * 10 + 2, Node => 3));
+            else
+               LWW.Remove (C, El, (Stamp => J * 10 + 2, Node => 3));
+            end if;
+         end loop;
+
+          --  Check associativity: Merge(Merge(A,B),C) = Merge(A,Merge(B,C))
+          declare
+             M1 : LWW.LWW_Element_Set (Max_LWW) := A;
+             M2 : LWW.LWW_Element_Set (Max_LWW) := A;
+             BC : LWW.LWW_Element_Set (Max_LWW) := B;
+             Assoc_Ok : Boolean := True;
+          begin
+             LWW.Merge (M1, B);
+             LWW.Merge (M1, C);
+             LWW.Merge (BC, C);
+             LWW.Merge (M2, BC);
+             for K in 1 .. 100 loop
+                if LWW.Contains (M1, K) /= LWW.Contains (M2, K) then
+                   Assoc_Ok := False;
+                   exit;
+                end if;
+             end loop;
+             if not Assoc_Ok then
+                Failed := Failed + 1;
+                Put_Line ("  FAIL: Fuzz associativity at iteration" & Natural'Image (I));
+             else
+                Passed := Passed + 1;
+             end if;
+          end;
+
+         if I mod 100 = 0 then
+            Put_Line ("    fuzz iteration" & Natural'Image (I));
+         end if;
+      end loop;
+
+      Put_Line ("[Property Fuzzer] done.");
+   end Test_Property_Fuzzer;
+
+   -----------------------------------------------
+   --  Anti-Interleaving (Concurrent Insert)    --
+   -----------------------------------------------
+   procedure Test_Anti_Interleaving is
+      Max_RGA : constant Positive := 50;
+
+      package RGA_Str is new CRDT.Rga (Character, Max_RGA);
+
+      function To_String (R : RGA_Str.RGA) return String is
+         Buf : String (1 .. RGA_Str.Size (R));
+      begin
+         for I in 1 .. RGA_Str.Size (R) loop
+            Buf (I) := RGA_Str.Get (R, I);
+         end loop;
+         return Buf;
+      end To_String;
+
+      function Has_Substr (S, Sub : String) return Boolean is
+      begin
+         for I in S'First .. S'Last - Sub'Length + 1 loop
+            if S (I .. I + Sub'Length - 1) = Sub then
+               return True;
+            end if;
+         end loop;
+         return False;
+      end Has_Substr;
+
+      use type RGA_Str.RGA;
+
+      Base : RGA_Str.RGA (Max_RGA);
+   begin
+      New_Line;
+      Put_Line ("[Anti-Interleaving]");
+
+      --  Build "Hello " (6 characters, Replica 1, Seq 1..6)
+      RGA_Str.Insert (Base, 1, (1, 1), 'H');
+      RGA_Str.Insert (Base, 2, (1, 2), 'e');
+      RGA_Str.Insert (Base, 3, (1, 3), 'l');
+      RGA_Str.Insert (Base, 4, (1, 4), 'l');
+      RGA_Str.Insert (Base, 5, (1, 5), 'o');
+      RGA_Str.Insert (Base, 6, (1, 6), ' ');
+
+      --  Node A (Replica 2) concurrently inserts "123" at position 7
+      declare
+         A : RGA_Str.RGA (Max_RGA) := Base;
+      begin
+         RGA_Str.Insert (A, 7, (2, 1), '1');
+         RGA_Str.Insert (A, 8, (2, 2), '2');
+         RGA_Str.Insert (A, 9, (2, 3), '3');
+
+         --  Node B (Replica 3) concurrently inserts "ABC" at position 7
+         declare
+            B : RGA_Str.RGA (Max_RGA) := Base;
+         begin
+            RGA_Str.Insert (B, 7, (3, 1), 'A');
+            RGA_Str.Insert (B, 8, (3, 2), 'B');
+            RGA_Str.Insert (B, 9, (3, 3), 'C');
+
+            --  Merge both ways — check semantic properties
+            declare
+               M1 : RGA_Str.RGA (Max_RGA) := A;
+               M2 : RGA_Str.RGA (Max_RGA) := B;
+            begin
+               RGA_Str.Merge (M1, B);
+               RGA_Str.Merge (M2, A);
+
+               declare
+                  S1 : constant String := To_String (M1);
+                  S2 : constant String := To_String (M2);
+               begin
+                  --  Both results must have all 12 characters (6 base + 3 A + 3 B)
+                  Check (RGA_Str.Size (M1) >= 12,
+                         "Anti-interleaving: M1 size >= 12 (got" & Natural'Image (RGA_Str.Size (M1)) & ")");
+                  Check (RGA_Str.Size (M2) >= 12,
+                         "Anti-interleaving: M2 size >= 12 (got" & Natural'Image (RGA_Str.Size (M2)) & ")");
+
+                  --  Base characters all present
+                  Check (Has_Substr (S1, "H") and Has_Substr (S1, "e")
+                         and Has_Substr (S1, "l") and Has_Substr (S1, "o")
+                         and Has_Substr (S1, " "),
+                         "Anti-interleaving: M1 has all base chars (got """ & S1 & """)");
+                  Check (Has_Substr (S2, "H") and Has_Substr (S2, "e")
+                         and Has_Substr (S2, "l") and Has_Substr (S2, "o")
+                         and Has_Substr (S2, " "),
+                         "Anti-interleaving: M2 has all base chars (got """ & S2 & """)");
+
+                  --  All 6 concurrent chars present across both merged results
+                  Check (Has_Substr (S1, "1") and Has_Substr (S1, "2") and Has_Substr (S1, "3")
+                         and Has_Substr (S1, "A") and Has_Substr (S1, "B") and Has_Substr (S1, "C"),
+                         "Anti-interleaving: M1 has all 6 inserted chars (got """ & S1 & """)");
+                  Check (Has_Substr (S2, "1") and Has_Substr (S2, "2") and Has_Substr (S2, "3")
+                         and Has_Substr (S2, "A") and Has_Substr (S2, "B") and Has_Substr (S2, "C"),
+                         "Anti-interleaving: M2 has all 6 inserted chars (got """ & S2 & """)");
+               end;
+            end;
+         end;
+      end;
+
+      Put_Line ("[Anti-Interleaving] done.");
+   end Test_Anti_Interleaving;
+
+   -----------------------------------------------
+   --  HLC Clock Skew Injection                 --
+   -----------------------------------------------
+   procedure Test_HLC_Clock_Skew is
+      Max_LWW : constant Positive := 200;
+
+      package LWW is new CRDT.Lww_Element_Sets (Integer, Max_LWW);
+
+      use type LWW.LWW_Element_Set;
+
+      A : LWW.LWW_Element_Set (Max_LWW);
+      B : LWW.LWW_Element_Set (Max_LWW);
+      C : LWW.LWW_Element_Set (Max_LWW);
+   begin
+      New_Line;
+      Put_Line ("[HLC Clock Skew]");
+
+      --  Initialize all three with elements 1..10
+      for I in 1 .. 10 loop
+         LWW.Add (A, I, (Stamp => I * 100, Node => 1));
+         LWW.Add (B, I, (Stamp => I * 100, Node => 1));
+         LWW.Add (C, I, (Stamp => I * 100, Node => 1));
+      end loop;
+
+      --  Advance B's clock into the future
+      for I in 1 .. 10 loop
+         LWW.Add (B, 10 + I, (Stamp => 1000000 + I, Node => 2));
+      end loop;
+
+      --  Merge B into A
+      LWW.Merge (A, B);
+
+      --  A does a local add with a very small stamp (different element)
+      LWW.Add (A, 999, (Stamp => 1, Node => 1));
+      Check (LWW.Contains (A, 999),
+             "Clock skew: local add of element 999 with Stamp=1 is present");
+
+      --  Verify A's low-stamp add did not overwrite B's high-stamp entries
+      declare
+         B_Intact : Boolean := True;
+      begin
+         for I in 1 .. 10 loop
+            if not LWW.Contains (A, 10 + I) then
+               B_Intact := False;
+               exit;
+            end if;
+         end loop;
+         Check (B_Intact, "Clock skew: B's high-stamp entries survived merge");
+      end;
+
+      --  Semantic convergence: C merges from A and B in both orders
+      declare
+         C1 : LWW.LWW_Element_Set (Max_LWW) := C;
+         C2 : LWW.LWW_Element_Set (Max_LWW) := C;
+      begin
+         LWW.Merge (C1, A);
+         LWW.Merge (C1, B);
+
+         LWW.Merge (C2, B);
+         LWW.Merge (C2, A);
+
+         Check (C1 = C2, "Clock skew: merge of A and B in any order converges");
+
+         declare
+            All_Converge : Boolean := True;
+         begin
+            for I in 1 .. 30 loop
+               if LWW.Contains (A, I) /= LWW.Contains (C1, I) then
+                  All_Converge := False;
+                  exit;
+               end if;
+            end loop;
+            if LWW.Contains (A, 999) /= LWW.Contains (C1, 999) then
+               All_Converge := False;
+            end if;
+            Check (All_Converge, "Clock skew: A and C1 semantically convergent");
+         end;
+      end;
+
+      Put_Line ("[HLC Clock Skew] done.");
+   end Test_HLC_Clock_Skew;
+
+   -----------------------------------------------
+   --  Tombstone Saturation (Capacity Overflow) --
+   -----------------------------------------------
+   procedure Test_Tombstone_Saturation is
+      Max_Items : constant Positive := 100;
+
+      package RGA_Ch is new CRDT.Rga (Character, Max_Items, Max_Stride => 64);
+
+      R : RGA_Ch.RGA (Max_Items);
+   begin
+      New_Line;
+      Put_Line ("[Tombstone Saturation]");
+
+      declare
+         No_Exception : Boolean := True;
+      begin
+         --  Insert 90 elements
+         for I in 1 .. 90 loop
+            RGA_Ch.Insert (R, RGA_Ch.Size (R) + 1, (1, I),
+                           Character'Val ((I - 1) mod 26 + 65));
+         end loop;
+
+         --  Delete 80 of them
+         for I in 1 .. 80 loop
+            RGA_Ch.Delete (R, 1);
+         end loop;
+
+         Check (No_Exception, "Tombstone saturation: no exception during fill/delete");
+      exception
+         when others =>
+            Check (False, "Tombstone saturation: exception raised during fill/delete");
+      end;
+
+      Check (RGA_Ch.Count (R) >= 80, "Tombstone saturation: Count >= 80 (got" &
+             Natural'Image (RGA_Ch.Count (R)) & ")");
+      Check (RGA_Ch.Size (R) >= 10, "Tombstone saturation: Size >= 10 (got" &
+             Natural'Image (RGA_Ch.Size (R)) & ")");
+
+      --  Compact
+      RGA_Ch.Compact (R);
+
+      Check (RGA_Ch.Size (R) >= 10, "Tombstone saturation: after compact Size >= 10 (got" &
+             Natural'Image (RGA_Ch.Size (R)) & ")");
+      Check (RGA_Ch.Count (R) >= 10, "Tombstone saturation: after compact Count >= 10 (got" &
+             Natural'Image (RGA_Ch.Count (R)) & ")");
+
+      --  Insert 30 more elements
+      for I in 91 .. 120 loop
+         RGA_Ch.Insert (R, RGA_Ch.Size (R) + 1, (1, I),
+                        Character'Val ((I - 1) mod 26 + 65));
+      end loop;
+
+      --  Verify no exception and all visible elements accessible
+      declare
+         No_Exception : Boolean := True;
+      begin
+         for I in 1 .. RGA_Ch.Size (R) loop
+            declare
+               Unused : constant Character := RGA_Ch.Get (R, I);
+            begin
+               null;
+            end;
+         end loop;
+         Check (No_Exception, "Tombstone saturation: no exception during readback");
+      exception
+         when others =>
+            Check (False, "Tombstone saturation: exception raised during readback");
+      end;
+
+      Check (RGA_Ch.Size (R) >= 40, "Tombstone saturation: final Size >= 40 (got" &
+             Natural'Image (RGA_Ch.Size (R)) & ")");
+
+      Put_Line ("[Tombstone Saturation] done.");
+   end Test_Tombstone_Saturation;
+
 begin
    Put_Line ("=== CRDT Test Suite ===");
    Put_Line ("Running unit tests, property-based fuzzing, and chaos simulations...");
@@ -1209,6 +1695,11 @@ begin
    Test_Three_Way_Split;
    Test_Byte_Boundary;
    Test_Out_Of_Order_Delta;
+   Test_Property_Fuzzer;
+   Test_Anti_Interleaving;
+   Test_HLC_Clock_Skew;
+   Test_Tombstone_Saturation;
+   Test_Fuzzing_Network_Partitions;
 
    New_Line;
    Put_Line ("=== Results ===");

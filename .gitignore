@@ -2,3 +2,4 @@ obj
 test_crdt
 tools/__pycache__
 alire/settings.toml
+demo/demo_life

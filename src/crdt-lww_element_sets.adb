@@ -45,7 +45,9 @@ is
    begin
       Add_I := Find_Index (S.Add_Array, S.Add_Size, E);
       if Add_I > 0 then
-         S.Add_Array (Add_I) := (E, TS);
+         if TS > S.Add_Array (Add_I).Time then
+            S.Add_Array (Add_I) := (E, TS);
+         end if;
          Remove_I := Find_Index (S.Remove_Array, S.Remove_Size, E);
          if Remove_I > 0 and then TS > S.Remove_Array (Remove_I).Time then
             S.Remove_Array (Remove_I) :=
