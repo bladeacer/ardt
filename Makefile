@@ -48,19 +48,22 @@ release:
 		cp index/ad/crdt/crdt-0.1.0-dev.toml "$$index_file"; \
 	fi; \
 	sed -i 's/^version = ".*"/version = "'$$version'"/' "$$index_file"; \
-	sed -i 's/^commit = ".*"/commit = "'$$commit'"/' "$$index_file"; \
 	release_file="alire/releases/crdt-$$version.toml"; \
 	if [ ! -f "$$release_file" ]; then \
 		sed 's/^version = ".*"/version = "'$$version'"/' alire/releases/crdt-0.0.0.toml > "$$release_file"; \
 	fi; \
 	sed -i 's/^version = ".*"/version = "'$$version'"/' "$$release_file"; \
-	sed -i '/^\[origin\]/,$d' "$$release_file"; \
-	echo "" >> "$$release_file"; \
-	echo "[origin]" >> "$$release_file"; \
-	echo "url = \"https://codeberg.org/bladeacer/Ada_CRDT/archive/v$$version.tar.gz\"" >> "$$release_file"; \
+	sed -i '/^\[origin\]/,$$d' "$$release_file" 2>/dev/null || true; \
+	sed -i '$${/^$$/d}' "$$release_file" 2>/dev/null || true; \
+	printf '[origin]\nurl = "https://codeberg.org/bladeacer/Ada_CRDT/archive/v%s.tar.gz"\n' "$$version" >> "$$release_file"; \
+	if git rev-parse "v$$version" >/dev/null 2>&1; then \
+		git tag -d "v$$version" >/dev/null 2>&1 || true; \
+		git push origin :refs/tags/"v$$version" >/dev/null 2>&1 || true; \
+		echo "  Replaced existing tag v$$version"; \
+	fi; \
 	git add -A; \
 	git commit -m "Release $$version" || true; \
-	git tag -a "v$$version" -m "Release $$version" || true; \
+	git tag -a "v$$version" -m "Release $$version"; \
 	echo "Tagged v$$version at $$commit"; \
 	git push origin HEAD && git push origin "v$$version"; \
 	echo "Pushed commit and tag v$$version"

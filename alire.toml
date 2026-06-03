@@ -13,6 +13,4 @@ executables = ["test_crdt"]
 
 [[depends-on]]
 gnatprove = "^15.1.0"
-
-[[depends-on]]
 gnatdoc_bin = "^26.0.0"

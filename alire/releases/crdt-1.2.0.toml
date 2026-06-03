@@ -8,6 +8,5 @@ maintainers-logins = ["bladeacer"]
 licenses = "MIT"
 website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada"]
-
 [origin]
 url = "https://codeberg.org/bladeacer/Ada_CRDT/archive/v1.2.0.tar.gz"

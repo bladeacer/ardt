@@ -9,6 +9,3 @@ website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada", "library"]
 auto-gpr-with = false
 
-[origin]
-url = "git+https://github.com/bladeacer/ada_crdt.git"
-commit = "a642a4629b518d463eca6c3b9a5e97a33531b088"
