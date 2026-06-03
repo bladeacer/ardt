@@ -417,8 +417,8 @@ procedure Demo_Life is
       Put ("]eset  [");
       VT100.Set_Attribute (VT100.Revers); Put ("P"); VT100.Set_Attribute (VT100.Reset);
       Put ("]ause  [");
-      VT100.Set_Attribute (VT100.Revers); Put ("Y"); VT100.Set_Attribute (VT100.Reset);
-      Put ("]js");
+      VT100.Set_Attribute (VT100.Revers); Put ("M"); VT100.Set_Attribute (VT100.Reset);
+      Put ("]ode");
       Put_Line (Pad ("", Natural'Max (0, Line_W - 2 - 35)) & V);
       Put_Line (BL & (1 .. Line_W - 2 => '=') & BR);
       Flush;
@@ -435,7 +435,7 @@ procedure Demo_Life is
             S.Paused := not S.Paused;
          when 'r' | 'R' =>
             Reset_State (S);
-         when 'y' | 'Y' =>
+         when 'm' | 'M' =>
             if S.Mode = Matrix then
                S.Mode := Yjs_RGA;
                Sync_Yjs_From_Matrix (S.N1);

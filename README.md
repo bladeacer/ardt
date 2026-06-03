@@ -200,14 +200,29 @@ CRDT.HLC.Recv (Clock, Remote);  -- on receive, reconcile with remote time
 
 ## Wire Protocol
 
-All serialized CRDT state begins with `Core.Protocol_Version` (currently `1`):
+All serialized CRDT state begins with `Core.Protocol_Version` (currently `2`):
 
 ```
-[Protocol_Version : Natural]
+[Protocol_Version : Natural]  (LEB128-encoded)
 [Payload]
 ```
 
-`Read_RGA` rejects mismatched versions, enabling safe rolling upgrades.
+### LEB128 Encoding
+
+All `Natural` fields in the wire format use [LEB128](https://en.wikipedia.org/wiki/LEB128)
+variable-length encoding (`CRDT.Core.LEB128`), producing 1-5 bytes per value
+instead of the fixed 4-byte `Natural'Write`. Small values (common for clocks,
+positions, and counts) use 1-2 bytes.
+
+Fields encoded with LEB128:
+- Protocol version (1 byte)
+- Per-node element count in sets
+- Sequence length and replica/sequence ID pairs
+- Tombstone and strut counts in RGA chunks
+
+This replaces the earlier fixed-width `Natural'Write` / `Natural'Read` format
+(Protocol_Version 1). `Read_RGA` rejects mismatched versions, enabling safe
+rolling upgrades.
 
 ---
 
@@ -231,9 +246,38 @@ Prerequisites: [Alire](https://alire.ada.dev) (manages GNAT automatically),
 
 ![Conway's Game of Life Demo](./demo.webp)
 
-There is a Conway Game of Life demonstration made using this library.
+A Conway's Game of Life TUI demo demonstrating CRDT convergence with three
+independent nodes. Each node evolves its own 20x20 grid using Game of Life
+rules, then pairwise merges with peers — nodes converge to identical state
+within 1-2 generations, even when random per-grid pauses temporarily freeze
+individual nodes.
 
-One can run with `make demo` after cloning the repository.
+### Running
+
+```bash
+make demo
+```
+
+### Features
+
+- **Two CRDT backends** toggled at runtime with `M`:
+  - **Matrix mode**: Each cell is a `(Row, Col)` element in a shared
+    `LWW_Element_Set`. Alive = present with highest-timestamp add; Dead =
+    removed (or never added).
+  - **Yjs_RGA mode**: Each grid row is an RGA `Character` sequence (`.` =
+    dead, `#` = alive). Uses chunk-splitting (Yjs engine) for efficiency.
+    Toggling modes syncs data between representations for each node.
+- **Three nodes (A, B, C)**, each with unique replica ID and Lamport clock.
+  Labels show per-node pause status.
+- **Round-robin merge** every tick between all non-paused node pairs.
+- **Per-grid random pauses** (0-5s) — paused nodes do not evolve or accept
+  merges. When they unpause they evolve one step then merge on the next tick,
+  instantly converging with peers.
+- **Global pause/resume** (`P`) freezes all grids; generation counter only
+  advances when at least one node evolves.
+- **Random seed 42** ensures reproducible gliders + ~30% random cell density.
+- **Ctrl+C** captured gracefully (cursor restore, "Goodbye!" message).
+- **Keybinds**: `Q` quit, `R` reset, `P` pause, `M` mode switch.
 
 ---
 
