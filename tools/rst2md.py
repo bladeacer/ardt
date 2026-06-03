@@ -52,17 +52,20 @@ def parse_blocks(text):
     lines = text.split("\n")
     i = 0
     while i < len(lines):
-        m = re.match(r"^\.\. ada-(type|function|procedure)::\s+(.+)$", lines[i])
+        m = re.match(r"^\.\. ada:(type|function|procedure)::\s+(.+)$", lines[i])
         if m:
             kind = m.group(1)
             name = m.group(2).strip()
             decl = ""
             i += 1
             while i < len(lines) and lines[i].strip() and lines[i].startswith(" "):
+                stripped = lines[i].strip()
+                i += 1
+                if re.match(r'^:[\w-]+:', stripped):
+                    continue
                 if decl:
                     decl += "\n"
-                decl += lines[i].strip()
-                i += 1
+                decl += stripped
             params = {}
             returns = ""
             while i < len(lines):
@@ -83,6 +86,26 @@ def parse_blocks(text):
                     while i < len(lines) and lines[i].strip() and re.match(r'^\s{4,}', lines[i]):
                         if lines[i].strip():
                             returns += " " + lines[i].strip()
+                        i += 1
+                elif re.match(r'^\s*\.\. code-block:: ada', lines[i]):
+                    i += 1
+                    base_indent = None
+                    while i < len(lines):
+                        if not lines[i].strip():
+                            i += 1
+                            continue
+                        indent = len(lines[i]) - len(lines[i].lstrip())
+                        if base_indent is None:
+                            base_indent = indent
+                        if indent < base_indent:
+                            break
+                        stripped = lines[i].strip()
+                        if re.match(r'^--', stripped):
+                            i += 1
+                            continue
+                        if decl:
+                            decl += "\n"
+                        decl += stripped
                         i += 1
                 elif re.match(r'^\s*\.\. ada:', lines[i]):
                     break
@@ -125,7 +148,8 @@ def render_package(title, desc, blocks):
         for name, decl, params_returns in items:
             params, returns = params_returns
             lines.append(f"### {name}\n")
-            lines.append(f"```ada\n{decl}\n```\n")
+            if decl:
+                lines.append(f"```ada\n{decl}\n```\n")
             if params:
                 lines.append("| Parameter | Description |")
                 lines.append("|-----------|-------------|")
