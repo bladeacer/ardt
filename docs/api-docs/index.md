@@ -3,14 +3,6 @@
 ## Packages
 
 - [CRDT](crdt.md)
-- [Test_Basic](test_basic.md)
-- [Test_Convergence](test_convergence.md)
-- [Test_Engines](test_engines.md)
-- [Test_Fuzz](test_fuzz.md)
-- [Test_GoL](test_gol.md)
-- [Test_Lattice](test_lattice.md)
-- [Test_RGA_Features](test_rga_features.md)
-- [Test_Serialization](test_serialization.md)
 - [CRDT.Bounded](crdt-bounded.md)
 - [CRDT.Core](crdt-core.md)
 - [CRDT.HLC](crdt-hlc.md)
@@ -22,7 +14,6 @@
 - [CRDT.Sequences](crdt-sequences.md)
 - [CRDT.Serialization](crdt-serialization.md)
 - [CRDT.Sync](crdt-sync.md)
-- [CRDT.Test_Support](crdt-test_support.md)
 - [CRDT.Bounded.Bounded_LWW_Set](crdt-bounded-bounded_lww_set.md)
 - [CRDT.Bounded.Bounded_RGA](crdt-bounded-bounded_rga.md)
 - [CRDT.Core.LEB128](crdt-core-leb128.md)

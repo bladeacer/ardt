@@ -2,7 +2,7 @@
 
 PN-Counter with per-replica actor map. Tracks increments (P) and decrements (N) for each replica independently. Fixed memory: 3 replicas = 3 slots regardless of millions of ops. Value = sum(P) - sum(N).
 
-> **Note:** 8 public item(s) shown below; 5 private internal item(s) are in the `private` section.
+> **Note:** 8 public item(s) shown below; 3 private internal item(s) are in the `private` section.
 
 ## Types
 
@@ -79,5 +79,3 @@ Default_Initial_Condition;
 - **type** `Actor_Entry`
 - **type** `Actor_Array`
 - **type** `PN_Counter`
-- **function** `Can_Increment`
-- **function** `Can_Decrement`
