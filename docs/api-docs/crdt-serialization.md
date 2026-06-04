@@ -1,6 +1,6 @@
 # CRDT.Serialization
 
-Protocol version router and canonical deserialization dispatcher. Auto-detects V1 (fixed-width Natural) vs V2 (LEB128) wire formats by inspecting the first 4 header bytes, then routes subsequent field reads through the correct decoder. This allows users of old library versions to serialise data that newer library versions can seamlessly read and auto-migrate.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
 > **Note:** All items in this package are public.
 

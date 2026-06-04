@@ -1,8 +1,8 @@
 # CRDT.Sync.Op_Based
 
-Operation-Based (CmRDT) sync engine. Replicas broadcast granular, immutable mutation events. Downstream operations must be applied exactly once. Network trait: Hyper-low bandwidth consumption, ideal for ordered delivery channels (WebSockets, TCP/TLS streams).
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
-> **Note:** 8 public item(s) shown below; 2 private internal item(s) are in the `private` section.
+> **Note:** All items in this package are public.
 
 ## Types
 
@@ -64,18 +64,14 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Index` | 1-based index. |
-| `Log` | Operation log to query. |
-
-**Returns:** Operation at that index.
+| `Index` |  |
+| `Log` |  |
 
 ### function Size (Log : CRDT.Sync.Op_Based.Op_Log) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` | Operation log to query. |
-
-**Returns:** Count of operations not yet acknowledged.
+| `Log` |  |
 
 ## Procedures
 
@@ -83,25 +79,18 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` | Operation log to modify. |
-| `Up_To_Seq` | Acknowledge all operations with Seq <= this. |
+| `Log` |  |
+| `Up_To_Seq` |  |
 
 ### procedure Append (Log : CRDT.Sync.Op_Based.Op_Log; Op : CRDT.Sync.Op_Based.Operation)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` | Operation log to append to. |
-| `Op` | Operation to record. |
+| `Log` |  |
+| `Op` |  |
 
 ### procedure Compact (Log : CRDT.Sync.Op_Based.Op_Log)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Log` | Operation log to compact. |
-
----
-
-## Private Section
-
-- **type** `Op_Array`
-- **type** `Op_Log`
+| `Log` |  |

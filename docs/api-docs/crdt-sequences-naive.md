@@ -1,8 +1,8 @@
 # CRDT.Sequences.Naive
 
-Naive per-element RGA engine. Every single element is its own individually allocated node. Useful for: educational baselines, chaotic editing environments, or small sequences where per-element overhead is acceptable.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
-> **Note:** 22 public item(s) shown below; 4 private internal item(s) are in the `private` section.
+> **Note:** All items in this package are public.
 
 ## Types
 
@@ -39,77 +39,59 @@ type RGA (Capacity : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` | Left sequence operand. |
-| `Right` | Right sequence operand. |
-
-**Returns:** True if both sequences are identical.
+| `Left` |  |
+| `Right` |  |
 
 ### function Count (R : CRDT.Sequences.Naive.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Count of allocated nodes (includes tombstones).
+| `R` |  |
 
 ### function Element (Container : CRDT.Sequences.Naive.RGA; Position : CRDT.Sequences.Naive.Cursor) return CRDT.Sequences.Naive.Element_Type
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to read from. |
-
-**Returns:** Element at the cursor's position.
+| `Container` |  |
+| `Position` |  |
 
 ### function First (Container : CRDT.Sequences.Naive.RGA) return CRDT.Sequences.Naive.Cursor
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-
-**Returns:** Cursor positioned at first element.
+| `Container` |  |
 
 ### function Get (R : CRDT.Sequences.Naive.RGA; Pos : Standard.Positive) return CRDT.Sequences.Naive.Element_Type
 
 | Parameter | Description |
 |-----------|-------------|
-| `Pos` | 1-based position. |
-| `R` | The sequence. |
-
-**Returns:** Element at that position.
+| `Pos` |  |
+| `R` |  |
 
 ### function Has_Element (Position : CRDT.Sequences.Naive.Cursor) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Position` | Cursor to check. |
-
-**Returns:** True if the cursor is within bounds.
+| `Position` |  |
 
 ### function Has_Element (Container : CRDT.Sequences.Naive.RGA; Position : CRDT.Sequences.Naive.Cursor) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to check. |
-
-**Returns:** True if the cursor is within bounds.
+| `Container` |  |
+| `Position` |  |
 
 ### function Length (R : CRDT.Sequences.Naive.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Number of non-deleted elements.
+| `R` |  |
 
 ### function Size (R : CRDT.Sequences.Naive.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Number of non-deleted elements.
+| `R` |  |
 
 ## Procedures
 
@@ -117,73 +99,64 @@ type RGA (Capacity : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to compact. |
+| `R` |  |
 
 ### procedure Delete (R : CRDT.Sequences.Naive.RGA; Pos : Standard.Positive)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Pos` | 1-based position of element to delete. |
-| `R` | The sequence to modify. |
+| `Pos` |  |
+| `R` |  |
 
 ### procedure Delete_Node (R : CRDT.Sequences.Naive.RGA; Id : CRDT.Sequences.Naive.Node_Id)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Node identifier of the item to delete. |
-| `R` | The sequence to modify. |
+| `Id` |  |
+| `R` |  |
 
 ### procedure Insert (R : CRDT.Sequences.Naive.RGA; Pos : Standard.Positive; Id : CRDT.Sequences.Naive.Node_Id; Value : CRDT.Sequences.Naive.Element_Type)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Unique node identifier for this element. |
-| `Pos` | 1-based insertion position. |
-| `R` | The sequence to modify. |
-| `Value` | Element to insert. |
+| `Id` |  |
+| `Pos` |  |
+| `R` |  |
+| `Value` |  |
 
 ### procedure Insert_Bulk (R : CRDT.Sequences.Naive.RGA; Pos : Standard.Positive; Id : CRDT.Sequences.Naive.Node_Id; Values : CRDT.Sequences.Naive.Element_Array)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Unique node identifier (used for first element). |
-| `Pos` | 1-based insertion position. |
-| `R` | The sequence to modify. |
-| `Values` | Array of elements to insert contiguously. |
+| `Id` |  |
+| `Pos` |  |
+| `R` |  |
+| `Values` |  |
 
 ### procedure Merge (Target : CRDT.Sequences.Naive.RGA; Source : CRDT.Sequences.Naive.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Source` | The sequence to merge from. |
-| `Target` | The sequence to merge into. |
+| `Source` |  |
+| `Target` |  |
 
 ### procedure Next (Container : CRDT.Sequences.Naive.RGA; Position : CRDT.Sequences.Naive.Cursor)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to advance (modified in place). |
+| `Container` |  |
+| `Position` |  |
 
 ### procedure Read_RGA (Stream : Ada.Streams.Root_Stream_Type; Item : CRDT.Sequences.Naive.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Item` | Deserialized RGA. |
-| `Stream` | Input stream. |
+| `Item` |  |
+| `Stream` |  |
 
 ### procedure Write_RGA (Stream : Ada.Streams.Root_Stream_Type; Item : CRDT.Sequences.Naive.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Item` | RGA to serialize. |
-| `Stream` | Output stream. |
-
----
-
-## Private Section
-
-- **type** `RGA_Item`
-- **type** `Item_Array`
-- **type** `Cursor`
-- **type** `RGA`
+| `Item` |  |
+| `Stream` |  |

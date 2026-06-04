@@ -1,8 +1,8 @@
 # CRDT.Sync.State_Based
 
-State-Based (CvRDT) sync engine. Replicas exchange full or delta-compressed state using Hybrid Logical Clock (HLC) timestamps for causal ordering. Network trait: Highly resilient to lossy/unstable topologies (UDP, peer-to-peer mesh, radio datalinks) because state merges are fully idempotent.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
-> **Note:** 6 public item(s) shown below; 1 private internal item(s) are in the `private` section.
+> **Note:** All items in this package are public.
 
 ## Types
 
@@ -28,27 +28,21 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Local` | Local replica state. |
-| `Remote_SV` | Remote state vector. |
-
-**Returns:** Count of items the remote peer is behind.
+| `Local` |  |
+| `Remote_SV` |  |
 
 ### function Create (Config : CRDT.Sync.State_Based.Sync_Config) return CRDT.Sync.State_Based.Replica_State
 
 | Parameter | Description |
 |-----------|-------------|
-| `Config` | Sync configuration. |
-
-**Returns:** Freshly initialized replica state.
+| `Config` |  |
 
 ### function Is_Ahead (SV : CRDT.Core.VTime; TS : CRDT.Core.Lamport_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `SV` | State vector to check. |
-| `TS` | Lamport timestamp to compare against. |
-
-**Returns:** True if the SV has entry at or past TS.
+| `SV` |  |
+| `TS` |  |
 
 ## Procedures
 
@@ -56,11 +50,5 @@ end record;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Local` | Local state to update. |
-| `Remote` | Remote state to merge from. |
-
----
-
-## Private Section
-
-- **type** `Replica_State`
+| `Local` |  |
+| `Remote` |  |

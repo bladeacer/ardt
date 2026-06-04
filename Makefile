@@ -21,7 +21,10 @@ help:
 	@echo '  help     Show this message'
 
 build:
-	alr build
+	tmpfile=$$(mktemp); \
+	alr build > $$tmpfile 2>&1; result=$$?; \
+	grep -v "no .sframe will be created" $$tmpfile; \
+	rm -f $$tmpfile; exit $$result
 
 run: build
 	alr run
@@ -37,7 +40,7 @@ doc: api-docs
 
 api-docs:
 	mkdir -p obj
-	alr exec -- gnatdoc -P crdt.gpr --backend=rst --output-dir=obj/gnatdoc-rst
+	alr exec -- gnatdoc -P crdt.gpr --backend=rst --output-dir=obj/gnatdoc-rst --exclude-dir="tests"
 	python3 tools/rst2md.py obj/gnatdoc-rst docs/api-docs
 
 release:

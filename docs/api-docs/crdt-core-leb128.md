@@ -1,6 +1,6 @@
 # CRDT.Core.LEB128
 
-LEB128 variable-length integer encoding for compact wire protocol. Small values (0-127) encode as a single byte instead of 4 (Natural'Write), dramatically reducing bandwidth for the many single-digit fields in CRDT serialization (protocol version, counts, lengths).
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
 > **Note:** All items in this package are public.
 
@@ -10,12 +10,12 @@ LEB128 variable-length integer encoding for compact wire protocol. Small values 
 
 | Parameter | Description |
 |-----------|-------------|
-| `Stream` | Source input stream. |
-| `Value` | Decoded integer. |
+| `Stream` |  |
+| `Value` |  |
 
 ### procedure Encode (Stream : Ada.Streams.Root_Stream_Type; Value : Standard.Natural)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Stream` | Target output stream. |
-| `Value` | Integer to encode (0 .. Natural'Last). |
+| `Stream` |  |
+| `Value` |  |

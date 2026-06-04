@@ -1,6 +1,6 @@
 # CRDT.Sync
 
-Sync layer interface for CRDT. Provides two transport strategies: * State_Based (CvRDT): full state merge with delta compression * Op_Based (CmRDT) : granular operation broadcast with ack/GC By separating the storage engine (Sequences.*) from the sync layer, Ada's generic instantiation ensures unused code paths are optimized away, maximizing performance and gnatprove compatibility.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
 > **Note:** All items in this package are public.
 

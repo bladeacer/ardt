@@ -1,6 +1,6 @@
 # CRDT.Bounded
 
-Bounded (pre-allocated) container wrappers. All dynamic structures use fixed-size arrays specified at compile time. Critical for mission-critical Ada/SPARK environments where heap allocation is restricted to prevent fragmentation and OOM. All types in CRDT natively use bounded storage; this package provides convenient renamings and documentation.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
 > **Note:** All items in this package are public.
 

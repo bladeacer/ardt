@@ -1,8 +1,8 @@
 # CRDT.Sequences.Yjs
 
-Yjs-style splitting block RGA engine. Groups contiguous characters written by the same client into memory blocks (size Max_Stride). Structural splitting splits a block when an insert targets its middle, then stitches the new block in between. Uses a pre-allocated contiguous array of blocks (memory arena) to avoid heap fragmentation. Industry equivalence: Yjs YATA algorithm.
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
-> **Note:** 26 public item(s) shown below; 5 private internal item(s) are in the `private` section.
+> **Note:** All items in this package are public.
 
 ## Types
 
@@ -54,77 +54,59 @@ type RGA (Item_Capacity : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` | Left sequence operand. |
-| `Right` | Right sequence operand. |
-
-**Returns:** True if both sequences are identical.
+| `Left` |  |
+| `Right` |  |
 
 ### function Count (R : CRDT.Sequences.Yjs.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Count of allocated nodes (includes tombstones).
+| `R` |  |
 
 ### function Element (Container : CRDT.Sequences.Yjs.RGA; Position : CRDT.Sequences.Yjs.Cursor) return CRDT.Sequences.Yjs.Element_Type
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to read from. |
-
-**Returns:** Element at the cursor's position.
+| `Container` |  |
+| `Position` |  |
 
 ### function First (Container : CRDT.Sequences.Yjs.RGA) return CRDT.Sequences.Yjs.Cursor
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-
-**Returns:** Cursor positioned at first element.
+| `Container` |  |
 
 ### function Get (R : CRDT.Sequences.Yjs.RGA; Pos : Standard.Positive) return CRDT.Sequences.Yjs.Element_Type
 
 | Parameter | Description |
 |-----------|-------------|
-| `Pos` | 1-based position. |
-| `R` | The sequence. |
-
-**Returns:** Element at that position.
+| `Pos` |  |
+| `R` |  |
 
 ### function Has_Element (Position : CRDT.Sequences.Yjs.Cursor) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Position` | Cursor to check. |
-
-**Returns:** True if the cursor is within bounds.
+| `Position` |  |
 
 ### function Has_Element (Container : CRDT.Sequences.Yjs.RGA; Position : CRDT.Sequences.Yjs.Cursor) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to check. |
-
-**Returns:** True if the cursor is within bounds.
+| `Container` |  |
+| `Position` |  |
 
 ### function Length (R : CRDT.Sequences.Yjs.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Number of non-deleted elements.
+| `R` |  |
 
 ### function Size (R : CRDT.Sequences.Yjs.RGA) return Standard.Natural
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to examine. |
-
-**Returns:** Number of non-deleted elements.
+| `R` |  |
 
 ## Procedures
 
@@ -132,91 +114,81 @@ type RGA (Item_Capacity : Positive) is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `R` | The sequence to compact. |
+| `R` |  |
 
 ### procedure Compute_State_Vector (R : CRDT.Sequences.Yjs.RGA; SV : CRDT.Sequences.Yjs.Replica_Max_Seq_Array; Count : Standard.Natural)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Count` | Number of entries written to SV. |
-| `R` | The sequence to analyze. |
-| `SV` | Output array of per-replica max seq values. |
+| `Count` |  |
+| `R` |  |
+| `SV` |  |
 
 ### procedure Delete (R : CRDT.Sequences.Yjs.RGA; Pos : Standard.Positive)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Pos` | 1-based position of element to delete. |
-| `R` | The sequence to modify. |
+| `Pos` |  |
+| `R` |  |
 
 ### procedure Delete_Node (R : CRDT.Sequences.Yjs.RGA; Id : CRDT.Sequences.Yjs.Node_Id)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Node identifier of the item to delete. |
-| `R` | The sequence to modify. |
+| `Id` |  |
+| `R` |  |
 
 ### procedure Insert (R : CRDT.Sequences.Yjs.RGA; Pos : Standard.Positive; Id : CRDT.Sequences.Yjs.Node_Id; Value : CRDT.Sequences.Yjs.Element_Type)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Unique node identifier for this element. |
-| `Pos` | 1-based insertion position. |
-| `R` | The sequence to modify. |
-| `Value` | Element to insert. |
+| `Id` |  |
+| `Pos` |  |
+| `R` |  |
+| `Value` |  |
 
 ### procedure Insert_Bulk (R : CRDT.Sequences.Yjs.RGA; Pos : Standard.Positive; Id : CRDT.Sequences.Yjs.Node_Id; Values : CRDT.Sequences.Yjs.Element_Array)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Id` | Unique node identifier (used for the first element). |
-| `Pos` | 1-based insertion position. |
-| `R` | The sequence to modify. |
-| `Values` | Array of elements to insert contiguously. |
+| `Id` |  |
+| `Pos` |  |
+| `R` |  |
+| `Values` |  |
 
 ### procedure Merge (Target : CRDT.Sequences.Yjs.RGA; Source : CRDT.Sequences.Yjs.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Source` | The sequence to merge from. |
-| `Target` | The sequence to merge into. |
+| `Source` |  |
+| `Target` |  |
 
 ### procedure Next (Container : CRDT.Sequences.Yjs.RGA; Position : CRDT.Sequences.Yjs.Cursor)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Container` | The sequence container. |
-| `Position` | Cursor to advance (modified in place). |
+| `Container` |  |
+| `Position` |  |
 
 ### procedure Read_RGA (Stream : Ada.Streams.Root_Stream_Type; Item : CRDT.Sequences.Yjs.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Item` | Deserialized RGA. |
-| `Stream` | Input stream. |
+| `Item` |  |
+| `Stream` |  |
 
 ### procedure Sync_Delta (Target : CRDT.Sequences.Yjs.RGA; Source : CRDT.Sequences.Yjs.RGA; Remote_SV : CRDT.Sequences.Yjs.Replica_Max_Seq_Array; SV_Count : Standard.Natural)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Remote_SV` | State vector of the remote peer. |
-| `SV_Count` | Number of entries in Remote_SV. |
-| `Source` | The sequence to merge from. |
-| `Target` | The sequence to merge into. |
+| `Remote_SV` |  |
+| `SV_Count` |  |
+| `Source` |  |
+| `Target` |  |
 
 ### procedure Write_RGA (Stream : Ada.Streams.Root_Stream_Type; Item : CRDT.Sequences.Yjs.RGA)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Item` | RGA to serialize. |
-| `Stream` | Output stream. |
-
----
-
-## Private Section
-
-- **type** `Element_Store`
-- **type** `RGA_Item`
-- **type** `Item_Array`
-- **type** `Cursor`
-- **type** `RGA`
+| `Item` |  |
+| `Stream` |  |

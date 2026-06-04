@@ -1,8 +1,8 @@
 # CRDT.HLC
 
-Hybrid Logical Clock (HLC) implementation. Combines physical wall-clock time with a logical counter to ensure causality is preserved even when physical clocks drift. Usage: Clock : HLC.Instance := HLC.Create (Node => 1); HLC.Tick (Clock); -- before sending HLC.Recv (Clock, Remote); -- on receiving remote timestamp TS : constant HLC_Time := HLC.Now (Clock);
+CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
 
-> **Note:** 9 public item(s) shown below; 2 private internal item(s) are in the `private` section.
+> **Note:** All items in this package are public.
 
 ## Types
 
@@ -24,44 +24,34 @@ type Instance is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` | Left HLC timestamp. |
-| `Right` | Right HLC timestamp. |
-
-**Returns:** True if Left causally precedes Right.
+| `Left` |  |
+| `Right` |  |
 
 ### function "=" (Left : CRDT.HLC.HLC_Time; Right : CRDT.HLC.HLC_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` | Left HLC timestamp. |
-| `Right` | Right HLC timestamp. |
-
-**Returns:** True if timestamps are identical.
+| `Left` |  |
+| `Right` |  |
 
 ### function ">" (Left : CRDT.HLC.HLC_Time; Right : CRDT.HLC.HLC_Time) return Standard.Boolean
 
 | Parameter | Description |
 |-----------|-------------|
-| `Left` | Left HLC timestamp. |
-| `Right` | Right HLC timestamp. |
-
-**Returns:** True if Left causally follows Right.
+| `Left` |  |
+| `Right` |  |
 
 ### function Create (Node : CRDT.Core.Replica_Id) return CRDT.HLC.Instance
 
 | Parameter | Description |
 |-----------|-------------|
-| `Node` | Replica identifier. |
-
-**Returns:** Initialized HLC clock.
+| `Node` |  |
 
 ### function Now (Clock : CRDT.HLC.Instance) return CRDT.HLC.HLC_Time
 
 | Parameter | Description |
 |-----------|-------------|
-| `Clock` | HLC instance to query. |
-
-**Returns:** Current HLC timestamp.
+| `Clock` |  |
 
 ## Procedures
 
@@ -69,18 +59,11 @@ type Instance is private;
 
 | Parameter | Description |
 |-----------|-------------|
-| `Clock` | Local HLC instance. |
-| `Remote` | Timestamp received from a remote peer. |
+| `Clock` |  |
+| `Remote` |  |
 
 ### procedure Tick (Clock : CRDT.HLC.Instance)
 
 | Parameter | Description |
 |-----------|-------------|
-| `Clock` | HLC instance to tick. |
-
----
-
-## Private Section
-
-- **type** `Instance`
-- **function** `Now`
+| `Clock` |  |
