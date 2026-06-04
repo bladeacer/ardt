@@ -47,16 +47,16 @@ procedure Test_Crdt is
       return S (S'First + 1 .. S'Last);
    end Trim_Image;
 
-   procedure HR is
+   procedure HR (To : File_Type := Standard_Output) is
    begin
-      Put_Line ("  |" & (1 .. Cat_W => '-') & "|" & (1 .. Tst_W => '-') & "|" & (1 .. Sta_W => '-') & "|");
+      Put_Line (To, "  |" & (1 .. Cat_W => '-') & "|" & (1 .. Tst_W => '-') & "|" & (1 .. Sta_W => '-') & "|");
    end HR;
 
-   procedure Row (Name : String; Count : Natural; Tag : String := "") is
+   procedure Row (To : File_Type := Standard_Output; Name : String; Count : Natural; Tag : String := "") is
       Nam : constant String := Name & (if Tag'Length > 0 then ": " & Tag else "");
       Cnt : constant String := Rjust (Trim_Image (Count), Tst_W - 2);
    begin
-      Put_Line ("  | " & Ljust (Nam, Cat_W - 2) & " | " & Cnt & " | PASS    |");
+      Put_Line (To, "  | " & Ljust (Nam, Cat_W - 2) & " | " & Cnt & " | PASS    |");
    end Row;
 
    procedure Write_Summary_Table (To : File_Type) is
@@ -64,12 +64,12 @@ procedure Test_Crdt is
       New_Line (To);
       Put_Line (To, "  | " & Ljust ("Category", Cat_W - 2) & " | " & Ljust ("Tests", Tst_W - 2)
                 & " | " & Ljust ("Status", Sta_W - 2) & " |");
-      HR;
+      HR (To);
    end Write_Summary_Table;
 
    procedure Write_Row (To : File_Type; Name : String; R : Runner; Tag : String := "") is
    begin
-      Row (Name, R.Passed + R.Failed, Tag);
+      Row (To, Name, R.Passed + R.Failed, Tag);
    end Write_Row;
 
 begin
@@ -101,6 +101,13 @@ begin
    Write_Row (Standard_Output, "Game of Life", R_GoL, "neighbors+blinker+sync+conv+mode");
    HR;
 
+   Total_Passed := R_Basic.Passed + R_Lattice.Passed + R_RGA_Features.Passed
+                  + R_Serialization.Passed + R_Engines.Passed + R_Convergence.Passed
+                  + R_Fuzz.Passed + R_GoL.Passed;
+   Total_Failed := R_Basic.Failed + R_Lattice.Failed + R_RGA_Features.Failed
+                  + R_Serialization.Failed + R_Engines.Failed + R_Convergence.Failed
+                  + R_Fuzz.Failed + R_GoL.Failed;
+
    --  Also write to file for README integration
    declare
       F : File_Type;
@@ -115,16 +122,12 @@ begin
       Write_Row (F, "Convergence", R_Convergence, "merge+skew+saturation");
       Write_Row (F, "Fuzz", R_Fuzz, "chaos+10k+partitions");
       Write_Row (F, "Game of Life", R_GoL, "neighbors+blinker+sync+conv+mode");
-      HR;
+      HR (F);
+      New_Line (F);
+      Put_Line (F, "  Passed:" & Natural'Image (Total_Passed)
+                & "  Failed:" & Natural'Image (Total_Failed));
       Close (F);
    end;
-
-   Total_Passed := R_Basic.Passed + R_Lattice.Passed + R_RGA_Features.Passed
-                  + R_Serialization.Passed + R_Engines.Passed + R_Convergence.Passed
-                  + R_Fuzz.Passed + R_GoL.Passed;
-   Total_Failed := R_Basic.Failed + R_Lattice.Failed + R_RGA_Features.Failed
-                  + R_Serialization.Failed + R_Engines.Failed + R_Convergence.Failed
-                  + R_Fuzz.Failed + R_GoL.Failed;
 
    New_Line;
    Put_Line ("=== Results ===");
