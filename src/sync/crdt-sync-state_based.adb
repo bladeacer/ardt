@@ -26,17 +26,19 @@ is
       return 0;
    end Compute_Delta;
 
-   function Is_Ahead (SV : Core.VTime; TS : Core.Lamport_Time) return Boolean is
-   begin
-      if TS.Stamp = 0 then
-         return False;
-      end if;
-      for I in SV'Range loop
-         if Natural (SV (I)) >= TS.Stamp then
-            return True;
-         end if;
-      end loop;
-      return False;
-   end Is_Ahead;
+    function Is_Ahead (SV : Core.VTime; TS : Core.Lamport_Time) return Boolean is
+    begin
+       if TS.Stamp = 0 then
+          return False;
+       end if;
+       for I in SV'Range loop
+          pragma Loop_Invariant
+            (for all J in SV'First .. I - 1 => Natural (SV (J)) < TS.Stamp);
+          if Natural (SV (I)) >= TS.Stamp then
+             return True;
+          end if;
+       end loop;
+       return False;
+    end Is_Ahead;
 
 end CRDT.Sync.State_Based;

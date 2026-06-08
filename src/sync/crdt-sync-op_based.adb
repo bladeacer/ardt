@@ -39,19 +39,24 @@ is
       end loop;
    end Acknowledge;
 
-   procedure Compact (Log : in out Op_Log) is
-      New_Count : Natural := 0;
-   begin
-      if Log.GC < Log.Count then
-         for I in Log.GC + 1 .. Log.Count loop
-            pragma Loop_Invariant (New_Count = I - (Log.GC + 1));
-            pragma Loop_Invariant (New_Count + 1 <= Log.Count - Log.GC);
-            New_Count := New_Count + 1;
-            Log.Ops (New_Count) := Log.Ops (I);
-         end loop;
-      end if;
-      Log.Count := New_Count;
-      Log.GC := 0;
-   end Compact;
+    procedure Compact (Log : in out Op_Log) is
+       New_Count : Natural := 0;
+       Old_GC    : constant Natural := Log.GC;
+       Old_Count : constant Natural := Log.Count;
+    begin
+       if Log.GC < Log.Count then
+          for I in Log.GC + 1 .. Log.Count loop
+             pragma Loop_Invariant (New_Count = I - (Log.GC + 1));
+             pragma Loop_Invariant (New_Count + 1 <= Log.Count - Log.GC);
+             New_Count := New_Count + 1;
+             Log.Ops (New_Count) := Log.Ops (I);
+          end loop;
+       end if;
+       Log.Count := New_Count;
+       Log.GC := 0;
+       pragma Assert (Log.GC = 0);
+       pragma Assert (Log.Count = Old_Count - Old_GC);
+       pragma Assert (Log.Count <= Log.Capacity);
+    end Compact;
 
 end CRDT.Sync.Op_Based;

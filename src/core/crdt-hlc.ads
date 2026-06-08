@@ -7,12 +7,19 @@
 --     HLC.Tick (Clock);           --  before sending
 --     HLC.Recv (Clock, Remote);   --  on receiving remote timestamp
 --     TS : constant HLC_Time := HLC.Now (Clock);
+--
+--  Requirements traceability:
+--  - HLR-HLC-CLOCK: HLC instance management
+--  - HLR-HLC-ORDER: HLC timestamp ordering operations
 with Ada.Calendar;
 with CRDT.Core;
 
 package CRDT.HLC with
   SPARK_Mode
 is
+
+   use Ada.Calendar;
+   use type Core.Replica_Id;
 
    --  HLC timestamp wrapping Core's HLC_Time.
    type HLC_Time is new Core.HLC_Time;
@@ -46,19 +53,31 @@ is
    --  @param Left   Left HLC timestamp.
    --  @param Right  Right HLC timestamp.
    --  @return True if Left causally precedes Right.
-   function "<" (Left, Right : HLC_Time) return Boolean;
+   function "<" (Left, Right : HLC_Time) return Boolean with
+     Post => ("<"'Result =
+               (if Left.Wall < Right.Wall then True
+                elsif Left.Wall > Right.Wall then False
+                elsif Left.Log < Right.Log then True
+                elsif Left.Log > Right.Log then False
+                else Left.Node < Right.Node));
 
    --  HLC equality: all three fields must match.
    --  @param Left   Left HLC timestamp.
    --  @param Right  Right HLC timestamp.
    --  @return True if timestamps are identical.
-   function "=" (Left, Right : HLC_Time) return Boolean;
+   function "=" (Left, Right : HLC_Time) return Boolean with
+     Post => ("="'Result =
+               (Left.Wall = Right.Wall
+                and then Left.Log = Right.Log
+                and then Left.Node = Right.Node));
 
    --  HLC greater-than: inverse of "<".
    --  @param Left   Left HLC timestamp.
    --  @param Right  Right HLC timestamp.
    --  @return True if Left causally follows Right.
-   function ">" (Left, Right : HLC_Time) return Boolean;
+   function ">" (Left, Right : HLC_Time) return Boolean with
+     Post => (">"'Result = (not (Left < Right)
+                            and then not (Left = Right)));
 
 private
 

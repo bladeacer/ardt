@@ -2,6 +2,12 @@
 --  Tracks increments (P) and decrements (N) for each replica independently.
 --  Fixed memory: 3 replicas = 3 slots regardless of millions of ops.
 --  Value = sum(P) - sum(N).
+--  
+--  Requirements traceability:
+--  - HLR-CNTR-VALUE: Query net counter value across all replicas
+--  - HLR-CNTR-OP: Increment/decrement with per-replica tracking
+--  - HLR-CNTR-MERGE: Merge two counter states into one
+--  - HLR-CNTR-SERIAL: V1/V2 wire format round-trip
 with Ada.Streams;
 with CRDT.Core;
 
@@ -17,6 +23,12 @@ is
    type PN_Counter (Max_Actors : Positive) is private with
      Default_Initial_Condition;
 
+   --  Return the number of actor entries currently tracked.
+   --  @param C  The counter to query.
+   --  @return   Entry count, always <= Max_Actors.
+   function Entry_Count (C : PN_Counter) return Natural with
+     Post => Entry_Count'Result <= C.Max_Actors;
+
    --  Current value of the counter (may be negative).
    --  @param C  The counter to query.
    --  @return   Net value (sum P minus sum N).
@@ -29,14 +41,14 @@ is
    --  @param By  Amount to increment.
    --  @return    Always True.
    function Can_Increment (C : PN_Counter; By : Counter_Range := 1)
-                              return Boolean;
+                               return Boolean;
 
    --  Check if decrement is possible (always True for unbounded counters).
    --  @param C   The counter.
    --  @param By  Amount to decrement.
    --  @return    Always True.
    function Can_Decrement (C : PN_Counter; By : Counter_Range := 1)
-                              return Boolean;
+                               return Boolean;
    pragma Warnings (On, "unused variable");
 
    --  Increment the counter by By for the given Actor (replica).
@@ -48,7 +60,8 @@ is
    procedure Increment (C     : in out PN_Counter;
                          By    : Counter_Range := 1;
                          Actor : Core.Replica_Id) with
-     Pre => Can_Increment (C, By);
+     Pre  => Can_Increment (C, By),
+     Post => Entry_Count (C) <= C.Max_Actors;
 
    --  Decrement the counter by By for the given Actor (replica).
    --  @param C      The counter to modify.
@@ -57,7 +70,8 @@ is
    procedure Decrement (C     : in out PN_Counter;
                          By    : Counter_Range := 1;
                          Actor : Core.Replica_Id) with
-     Pre => Can_Decrement (C, By);
+     Pre  => Can_Decrement (C, By),
+     Post => Entry_Count (C) <= C.Max_Actors;
 
    --  Merge another counter's state into this one.
    --  For each actor: takes the element-wise max of P and N.
@@ -65,7 +79,8 @@ is
    --  @param Target  Counter to merge into.
    --  @param Source  Counter to merge from.
    procedure Merge (Target : in out PN_Counter;
-                     Source : PN_Counter);
+                     Source : PN_Counter) with
+     Post => Entry_Count (Target) <= Target.Max_Actors;
 
    --  Serialize counter to stream (V2: LEB128-encoded).
    procedure Write_PN_Counter
@@ -102,11 +117,13 @@ private
      Type_Invariant => Count <= Max_Actors;
 
    function Can_Increment (C : PN_Counter; By : Counter_Range := 1)
-                               return Boolean is
+                                return Boolean is
      (C.Count < C.Max_Actors);
 
    function Can_Decrement (C : PN_Counter; By : Counter_Range := 1)
-                               return Boolean is
+                                return Boolean is
      (C.Count < C.Max_Actors);
+
+   function Entry_Count (C : PN_Counter) return Natural is (C.Count);
 
 end CRDT.Pn_Counters;

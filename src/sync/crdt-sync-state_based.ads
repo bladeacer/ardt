@@ -5,6 +5,10 @@
 --  Network trait: Highly resilient to lossy/unstable topologies
 --  (UDP, peer-to-peer mesh, radio datalinks) because state merges
 --  are fully idempotent.
+--
+--  Requirements traceability:
+--  - HLR-SYNC-STATE: State-based sync with vector clocks
+--  - HLR-SYNC-DELTA: Delta computation for partial state exchange
 with Ada.Calendar;
 with CRDT.Core;
 with CRDT.HLC;
@@ -41,13 +45,17 @@ is
    --  @param Remote_SV  Remote state vector.
    --  @return  Count of items the remote peer is behind.
    function Compute_Delta (Local : Replica_State;
-                            Remote_SV : Core.VTime) return Natural;
+                            Remote_SV : Core.VTime) return Natural with
+     Post => Compute_Delta'Result = 0;
 
    --  Check if a state vector has advanced past a given Lamport timestamp.
    --  @param SV  State vector to check.
    --  @param TS  Lamport timestamp to compare against.
    --  @return  True if the SV has entry at or past TS.
-   function Is_Ahead (SV : Core.VTime; TS : Core.Lamport_Time) return Boolean;
+   function Is_Ahead (SV : Core.VTime; TS : Core.Lamport_Time) return Boolean with
+     Post => (if TS.Stamp = 0 then not Is_Ahead'Result
+              else (Is_Ahead'Result =
+                      (for some I in SV'Range => Natural (SV (I)) >= TS.Stamp)));
 
 private
 

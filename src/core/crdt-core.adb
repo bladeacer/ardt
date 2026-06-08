@@ -108,47 +108,60 @@ is
    -- VTime ops --
    ---------------
 
-   function VTime_Less (Left, Right : VTime) return Boolean is
-   begin
-      if VTime_Eq (Left, Right) then
-         return False;
-      end if;
-      for I in Left'Range loop
-         if Left (I) > Right (I) then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end VTime_Less;
+    function VTime_Less (Left, Right : VTime) return Boolean is
+    begin
+       if VTime_Eq (Left, Right) then
+          return False;
+       end if;
+       for I in Left'Range loop
+          pragma Loop_Invariant
+            (for all J in Left'First .. I - 1 => Left (J) <= Right (J));
+          if Left (I) > Right (I) then
+             return False;
+          end if;
+       end loop;
+       return True;
+    end VTime_Less;
 
-   function VTime_Leq (Left, Right : VTime) return Boolean is
-   begin
-      for I in Left'Range loop
-         if Left (I) > Right (I) then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end VTime_Leq;
+    function VTime_Leq (Left, Right : VTime) return Boolean is
+    begin
+       for I in Left'Range loop
+          pragma Loop_Invariant
+            (for all J in Left'First .. I - 1 => Left (J) <= Right (J));
+          if Left (I) > Right (I) then
+             return False;
+          end if;
+       end loop;
+       return True;
+    end VTime_Leq;
 
-   function VTime_Eq (Left, Right : VTime) return Boolean is
-   begin
-      for I in Left'Range loop
-         if Left (I) /= Right (I) then
-            return False;
-         end if;
-      end loop;
-      return True;
-   end VTime_Eq;
+    function VTime_Eq (Left, Right : VTime) return Boolean is
+    begin
+       for I in Left'Range loop
+          pragma Loop_Invariant
+            (for all J in Left'First .. I - 1 => Left (J) = Right (J));
+          if Left (I) /= Right (I) then
+             return False;
+          end if;
+       end loop;
+       return True;
+    end VTime_Eq;
 
-   procedure VTime_Merge (Target : in out VTime; Source : VTime) is
-   begin
-      for I in Target'Range loop
-         if Source (I) > Target (I) then
-            Target (I) := Source (I);
-         end if;
-      end loop;
-   end VTime_Merge;
+    procedure VTime_Merge (Target : in out VTime; Source : VTime) is
+    begin
+       for I in Target'Range loop
+          pragma Loop_Invariant
+            (for all J in Target'Range =>
+               (if J < I then
+                  (if Source (J) > Target'Loop_Entry (J)
+                   then Target (J) = Source (J)
+                   else Target (J) = Target'Loop_Entry (J))
+                else Target (J) = Target'Loop_Entry (J)));
+          if Source (I) > Target (I) then
+             Target (I) := Source (I);
+          end if;
+       end loop;
+    end VTime_Merge;
 
    procedure VTime_Increment (VT : in out VTime; Idx : Positive) is
    begin

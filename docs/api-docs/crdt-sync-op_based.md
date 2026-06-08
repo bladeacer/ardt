@@ -67,6 +67,18 @@ end record;
 | `Index` |  |
 | `Log` |  |
 
+### function Log_Count (Log : CRDT.Sync.Op_Based.Op_Log) return Standard.Natural
+
+| Parameter | Description |
+|-----------|-------------|
+| `Log` |  |
+
+### function Log_GC (Log : CRDT.Sync.Op_Based.Op_Log) return Standard.Natural
+
+| Parameter | Description |
+|-----------|-------------|
+| `Log` |  |
+
 ### function Size (Log : CRDT.Sync.Op_Based.Op_Log) return Standard.Natural
 
 | Parameter | Description |

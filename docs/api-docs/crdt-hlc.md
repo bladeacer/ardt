@@ -1,6 +1,6 @@
 # CRDT.HLC
 
-CRDT: Conflict-Free Replicated Data Types for Ada/SPARK. Provides PN-Counters, LWW-Element-Sets, and Replicated Growable Arrays with modular sequence engines and thread-safe wrappers.
+HLC timestamp wrapping Core's HLC_Time.
 
 > **Note:** All items in this package are public.
 

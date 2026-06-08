@@ -6,6 +6,16 @@ package body CRDT.Lww_Element_Sets with
   SPARK_Mode
 is
 
+   function Add_Count (S : LWW_Element_Set) return Natural is
+   begin
+      return S.Add_Size;
+   end Add_Count;
+
+   function Remove_Count (S : LWW_Element_Set) return Natural is
+   begin
+      return S.Remove_Size;
+   end Remove_Count;
+
    procedure Clear (S : in out LWW_Element_Set) is
    begin
       S.Add_Size := 0;
