@@ -56,7 +56,7 @@ procedure Test_Crdt is
       Nam : constant String := Name & (if Tag'Length > 0 then ": " & Tag else "");
       Cnt : constant String := Rjust (Trim_Image (Count), Tst_W - 2);
    begin
-      Put_Line (To, "  | " & Ljust (Nam, Cat_W - 2) & " | " & Cnt & " | PASS    |");
+      Put_Line (To, "  | " & Ljust (Nam, Cat_W - 2) & " | " & Cnt & " | " & Ljust ("PASS", Sta_W - 2) & " |");
    end Row;
 
    procedure Write_Summary_Table (To : File_Type) is

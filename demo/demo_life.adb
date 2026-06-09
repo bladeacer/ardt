@@ -388,7 +388,6 @@ procedure Demo_Life is
           when 'm' | 'M' =>
              if S.Mode = Matrix then
                 S.Mode := Yjs_RGA;
-                -- Sync all three nodes from their converged matrix state.
                 Sync_Yjs_From_Matrix (S.N1);
                 Sync_Yjs_From_Matrix (S.N2);
                 Sync_Yjs_From_Matrix (S.N3);
@@ -398,11 +397,7 @@ procedure Demo_Life is
                 Sync_Matrix_From_Yjs (S.N2);
                 Sync_Matrix_From_Yjs (S.N3);
              end if;
-              S.N1.Paused := False;
-              S.N2.Paused := False;
-              S.N3.Paused := False;
-              S.Paused := False;
-              VT100.Clear_Screen;
+             VT100.Clear_Screen;
          when others => null;
       end case;
    end Handle_Input;
