@@ -48,6 +48,28 @@ make run
 
 [Click here to view the Changelogs](docs/changelogs/index.md).
 
+### On Compatibility
+
+Much like [Golang on 1.0 compatibility](https://go.dev/doc/go1compat),
+this library aims to maintain full backwards compatibility with version 1.0.0.
+
+This means that even if future version of wire protocol are added, there will
+still be legacy support for reading older formats.
+
+Compatibility is done on a best effort basis, there might be some minor
+incompatible changes here and there. The versioned changelogs and migration
+guide(s) should help with deciding whether to upgrade/migrate, not upgrade at
+all or vendor and version lock the library.
+
+> The latter is generally preferred especially for more serious use cases.
+
+### Roadmap
+
+- Ada SPARK Mode enabled for more of the codebase
+- Verified Ada Gold/Platinum for more of the codebase
+- More robust unit tests
+- Targeting [DO-178C compliance](https://www.do178.org/)
+
 ---
 
 ## Core Types

@@ -164,7 +164,7 @@ package body Test_GoL is
       Stamp : Natural := 0;
    begin
       New_Line;
-      Put_Line ("[Game of Life: Matrix<->Yjs Sync]");
+      Put_Line ("[Game of Life: Matrix <-> Yjs Sync]");
 
       --  Fill a few cells in the matrix
       for R in 1 .. Grid_Size loop
@@ -207,7 +207,7 @@ package body Test_GoL is
                end;
             end loop;
          end loop;
-         RunR.Check(All_Correct, "Matrix->Yjs: all cells match after sync");
+         RunR.Check(All_Correct, "Matrix -> Yjs: all cells match after sync");
       end;
 
       --  Simulate a second sync (rows now have data): evolve matrix, re-sync
@@ -249,9 +249,9 @@ package body Test_GoL is
                   end if;
                end loop;
             end loop;
-            RunR.Check(Match, "Matrix->Yjs: second sync on non-empty rows preserves all cells");
+            RunR.Check(Match, "Matrix -> Yjs: second sync on non-empty rows preserves all cells");
          end;
-         RunR.Check(Seq > Old_Seq, "Matrix->Yjs: seq counter monotonically increases (" &
+         RunR.Check(Seq > Old_Seq, "Matrix -> Yjs: seq counter monotonically increases (" &
                 Natural'Image (Seq) & " >" & Natural'Image (Old_Seq) & ")");
       end;
 
@@ -279,10 +279,10 @@ package body Test_GoL is
                end if;
             end loop;
          end loop;
-         RunR.Check(All_Agree, "Yjs->Matrix: round-trip preserves all cells");
+         RunR.Check(All_Agree, "Yjs -> Matrix: round-trip preserves all cells");
       end;
 
-      Put_Line ("[Game of Life: Matrix<->Yjs Sync] done.");
+      Put_Line ("[Game of Life: Matrix <-> Yjs Sync] done.");
    end Test_GoL_Matrix_Yjs_Sync;
 
    procedure Test_GoL_Convergence is
@@ -515,7 +515,7 @@ package body Test_GoL is
 
       --  First sync: Matrix -> Yjs (empty rows)
       Sync_To_Yjs;
-      RunR.Check(Cells_Match, "Mode switch gen 0: first Matrix->Yjs sync (empty rows)");
+      RunR.Check(Cells_Match, "Mode switch gen 0: first Matrix -> Yjs sync (empty rows)");
       declare
          Seq_After_First : constant Natural := Seq;
       begin
@@ -526,22 +526,22 @@ package body Test_GoL is
       --  Gen 1: toggle pattern in Matrix (simulate evolution), re-sync
       Toggle_Pattern;
       Sync_To_Yjs;
-      RunR.Check(Cells_Match, "Mode switch gen 1: second Matrix->Yjs sync (non-empty rows)");
+      RunR.Check(Cells_Match, "Mode switch gen 1: second Matrix -> Yjs sync (non-empty rows)");
       RunR.Check(Seq = Grid_Size * Grid_Size * 2, "Mode switch gen 1: seq monotonically increased (" &
              Natural'Image (Seq) & ")");
 
       --  Gen 2: toggle again (simulate evolution), re-sync
       Toggle_Pattern;
       Sync_To_Yjs;
-      RunR.Check(Cells_Match, "Mode switch gen 2: third Matrix->Yjs sync (another toggle)");
+      RunR.Check(Cells_Match, "Mode switch gen 2: third Matrix -> Yjs sync (another toggle)");
 
       --  Gen 3: round-trip Yjs -> Matrix
       Sync_To_Matrix;
-      RunR.Check(Cells_Match, "Mode switch gen 3: Yjs->Matrix round-trip preserves pattern");
+      RunR.Check(Cells_Match, "Mode switch gen 3: Yjs -> Matrix round-trip preserves pattern");
 
       --  Gen 4: back to Yjs again (full cycle: M -> Y -> M -> Y)
       Sync_To_Yjs;
-      RunR.Check(Cells_Match, "Mode switch gen 4: second Yjs->Matrix sync (full cycle complete)");
+      RunR.Check(Cells_Match, "Mode switch gen 4: second Yjs -> Matrix sync (full cycle complete)");
 
       --  Gen 5: toggle and sync one more time to ensure no stale-item accumulation
       Toggle_Pattern;
