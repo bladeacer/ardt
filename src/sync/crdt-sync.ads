@@ -8,7 +8,9 @@
 --  maximizing performance and gnatprove compatibility.
 with CRDT.Core;
 
-package CRDT.Sync is
+package CRDT.Sync with
+  SPARK_Mode
+is
 
    --  State vector for tracking which per-replica updates a peer has seen.
    --  Indexed by replica slot; each element is the highest sequence number

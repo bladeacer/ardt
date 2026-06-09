@@ -29,6 +29,8 @@ _Generated: 2026-06-09_
 | Non-SPARK dependency cascade | 1 | `CRDT.Sync.State_Based.Create` |
 | Complex data structures (access types) | 4 | Sequence engine bodies (RGA, Naive, Yjs, Fugue) |
 
+All packages with SPARK-compatible specs are annotated: `CRDT.Sync` (trivial type-only package) now included.
+
 ## Test Results
 
 | Category | Test File | Tests |
@@ -37,11 +39,11 @@ _Generated: 2026-06-09_
 | Convergence | `test_convergence.adb` | 3-way split, anti-interleaving, clock skew, saturation |
 | Lattice laws | `test_lattice.adb` | Commutativity, idempotency, associativity |
 | RGA features | `test_rga_features.adb` | Chaotic interleaving, tombstones, splitting, delta sync, GC |
-| Serialization | `test_serialization.adb` | V1/V2 round-trip, migration, backward compat |
+| Serialization | `test_serialization.adb` | V1/V2 round-trip, migration, backward compat, LEB128 |
 | Sequence engines | `test_engines.adb` | Yjs iterators, Naive engine, sync layer |
 | Fuzz testing | `test_fuzz.adb` | Bit-flip, clock skew, OOO delta, property fuzzer, partitions |
 | Game of Life | `test_gol.adb` | Neighbors, blinker, matrix<->Yjs sync, convergence, mode switch |
-| **Total** | | **10229** |
+| **Total** | | **10250** |
 
 ## DO-178C Traceability
 

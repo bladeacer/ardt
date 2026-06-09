@@ -3,6 +3,7 @@ with CRDT.Pn_Counters;
 with CRDT.Lww_Element_Sets;
 with CRDT.Rga;
 with CRDT.Core;
+with CRDT.Core.LEB128;
 with CRDT.Serialization;
 with Ada.Streams;
 with Ada.Streams.Stream_IO;
@@ -648,16 +649,49 @@ package body Test_Serialization is
                      "V1 back-compat: LWW remove, not contains 42");
       end;
 
-      Put_Line ("[V1 Backward Compat] done.");
-   end Test_V1_Backward_Compat;
+       Put_Line ("[V1 Backward Compat] done.");
+    end Test_V1_Backward_Compat;
+
+    procedure Test_LEB128 is
+       use Ada.Streams;
+       use Ada.Streams.Stream_IO;
+       Values : constant array (Positive range <>) of Natural :=
+         (0, 1, 127, 128, 16383, 16384, 2097151, 2097152, Natural'Last);
+       Names : constant array (Values'Range) of String (1 .. 17) :=
+         ("zero             ",
+          "one              ",
+          "max single byte  ",
+          "min two bytes    ",
+          "max two bytes    ",
+          "min three bytes  ",
+          "max three bytes  ",
+          "min four bytes   ",
+          "Natural'Last     ");
+       F : Ada.Streams.Stream_IO.File_Type;
+       D : Natural;
+    begin
+       New_Line;
+       Put_Line ("[LEB128 Encode/Decode]");
+       for I in Values'Range loop
+          Create (F, Out_File, "/tmp/crdt_leb128_test.bin");
+          CRDT.Core.LEB128.Encode (Stream (F), Values (I));
+          Close (F);
+          Open (F, In_File, "/tmp/crdt_leb128_test.bin");
+          CRDT.Core.LEB128.Decode (Stream (F), D);
+          Close (F);
+          RunR.Check (D = Values (I), "LEB128 round-trip: " & Names (I));
+       end loop;
+       Put_Line ("[LEB128 Encode/Decode] done.");
+    end Test_LEB128;
 
 begin
-   Test_Stream_Serialization;
-   Test_Byte_Boundary;
-   Test_V1_Migration;
-   Test_Migration_PN_Counter;
-   Test_Migration_LWW_Roundtrip;
-   Test_Migrate_Header;
-   Test_V1_Backward_Compat;
+    Test_Stream_Serialization;
+    Test_Byte_Boundary;
+    Test_LEB128;
+    Test_V1_Migration;
+    Test_Migration_PN_Counter;
+    Test_Migration_LWW_Roundtrip;
+    Test_Migrate_Header;
+    Test_V1_Backward_Compat;
 end Run;
 end Test_Serialization;
