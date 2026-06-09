@@ -34,8 +34,8 @@ ordering with physical-clock integration.
 
 ### Serialization
 
-V1 Protocol implements fixed 4-byte `Natural'Write` encoding. LEB128
-variable-length integer encoding is used internally for sequence metadata.
+V1 Protocol implements fixed 4-byte `Natural'Write` encoding for all integer
+values (header fields, node IDs, lengths).
 
 ### Testing & Verification
 

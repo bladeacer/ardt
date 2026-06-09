@@ -32,6 +32,7 @@ is
    type Cursor is private;
 
    --  Check if cursor points to a valid element.
+   --  @param Position  Cursor to check.
    --  @return True if the cursor is not at the end.
    function Has_Element (Position : Cursor) return Boolean;
 

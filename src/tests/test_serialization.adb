@@ -525,6 +525,132 @@ package body Test_Serialization is
       Put_Line ("[Migrate_Header] done.");
    end Test_Migrate_Header;
 
+   procedure Test_V1_Backward_Compat is
+      use Ada.Streams;
+      use Ada.Streams.Stream_IO;
+      use CRDT.Serialization;
+      F : Ada.Streams.Stream_IO.File_Type;
+      subtype SEO is Stream_Element_Offset;
+      Buf  : Stream_Element_Array (SEO'(1) .. 100);
+      Idx  : SEO := SEO'(1);
+      procedure WB (B : Stream_Element) is
+      begin Buf (Idx) := B; Idx := Idx + 1; end WB;
+      procedure WN (V : Natural) is
+      begin
+         WB (Stream_Element (V mod 256));
+         WB (Stream_Element ((V / 256) mod 256));
+         WB (Stream_Element ((V / 65536) mod 256));
+         WB (Stream_Element ((V / 16777216) mod 256));
+      end WN;
+      Kind     : CRDT.Serialization.Protocol_Kind;
+      Total    : Natural;
+      Count    : Natural;
+   begin
+      New_Line;
+      Put_Line ("[V1 Backward Compat]");
+
+      --  1. V1 empty payload (Total=0, Count=0)
+      Idx := SEO'(1);
+      WN (2); WN (0); WN (0);
+      Create (F, Out_File, "/tmp/crdt_v1_empty_compat.bin");
+      Ada.Streams.Stream_IO.Write (F, Buf (1 .. Idx - 1));
+      Close (F);
+      Open (F, In_File, "/tmp/crdt_v1_empty_compat.bin");
+      Read_Header (Stream (F), Kind, Total, Count);
+      RunR.Check (Kind = Proto_V1,
+                  "V1 back-compat: empty payload detected as V1");
+      RunR.Check (Total = 0,
+                  "V1 back-compat: empty Total = 0, got" &
+                    Natural'Image (Total));
+      RunR.Check (Count = 0,
+                  "V1 back-compat: empty Count = 0, got" &
+                    Natural'Image (Count));
+      Close (F);
+
+      --  2. V1 maximum natural values
+      Idx := SEO'(1);
+      WN (2); WN (Natural'Last); WN (Natural'Last);
+      Create (F, Out_File, "/tmp/crdt_v1_max_compat.bin");
+      Ada.Streams.Stream_IO.Write (F, Buf (1 .. Idx - 1));
+      Close (F);
+      Open (F, In_File, "/tmp/crdt_v1_max_compat.bin");
+      Read_Header (Stream (F), Kind, Total, Count);
+      RunR.Check (Kind = Proto_V1,
+                  "V1 back-compat: max payload detected as V1");
+      RunR.Check (Total = Natural'Last,
+                  "V1 back-compat: max Total, got" &
+                    Natural'Image (Total));
+      RunR.Check (Count = Natural'Last,
+                  "V1 back-compat: max Count, got" &
+                    Natural'Image (Count));
+      Close (F);
+
+      --  3. V2 protocol field matches constant
+      --  Core.Protocol_Version = 2, which is always the first LEB128 byte
+      Idx := SEO'(1);
+      WB (2); WB (0); WB (0);  -- V2: Version=2, Total=0, Count=0
+      Create (F, Out_File, "/tmp/crdt_v2_proto_check.bin");
+      Ada.Streams.Stream_IO.Write (F, Buf (1 .. Idx - 1));
+      Close (F);
+      Open (F, In_File, "/tmp/crdt_v2_proto_check.bin");
+      Read_Header (Stream (F), Kind, Total, Count);
+      RunR.Check (Kind = Proto_V2,
+                  "V1 back-compat: V2 short header detected as V2");
+      Close (F);
+
+      --  4. V1 multi-item RGA payload: 2 items
+      declare
+         Max_RGA : constant Positive := 30;
+         package RGA_Str is new CRDT.Rga (Character, Max_RGA);
+         Dst : RGA_Str.RGA (Max_RGA);
+      begin
+         Idx := SEO'(1);
+         WN (2); WN (3); WN (2);  -- Ver=2, Total=3, Count=2
+         -- Item 1: Node_Id=(1,1), Len=2, Content="AB"
+         WN (1); WN (1); WN (2); WB (0);
+         WB (65); WB (66);
+         -- Item 2: Node_Id=(1,2), Len=1, Content="C"
+         WN (1); WN (2); WN (1); WB (0);
+         WB (67);
+         Create (F, Out_File, "/tmp/crdt_v1_multi_rga.bin");
+         Ada.Streams.Stream_IO.Write (F, Buf (1 .. Idx - 1));
+         Close (F);
+         Open (F, In_File, "/tmp/crdt_v1_multi_rga.bin");
+         RGA_Str.RGA'Read (Stream (F), Dst);
+         Close (F);
+         RunR.Check (RGA_Str.Size (Dst) = 3,
+                     "V1 back-compat: multi-item RGA size = 3, got" &
+                       Natural'Image (RGA_Str.Size (Dst)));
+         RunR.Check (RGA_Str.Get (Dst, 1) = 'A',
+                     "V1 back-compat: multi-item RGA Get(1)='A'");
+         RunR.Check (RGA_Str.Get (Dst, 3) = 'C',
+                     "V1 back-compat: multi-item RGA Get(3)='C'");
+      end;
+
+      --  5. V1 LWW with remove entries
+      declare
+         package LWW is new CRDT.Lww_Element_Sets (Integer, 20);
+         S : LWW.LWW_Element_Set (Capacity => 20);
+      begin
+         Idx := SEO'(1);
+         WN (2); WN (1); WN (1);  -- Ver=2, Add_Size=1, Remove_Size=1
+         -- 1 add entry: Element=42, Stamp=100, Node=1
+         WN (42); WN (100); WN (1);
+         -- 1 remove entry: Element=42, Stamp=200, Node=1
+         WN (42); WN (200); WN (1);
+         Create (F, Out_File, "/tmp/crdt_v1_lww_remove.bin");
+         Ada.Streams.Stream_IO.Write (F, Buf (1 .. Idx - 1));
+         Close (F);
+         Open (F, In_File, "/tmp/crdt_v1_lww_remove.bin");
+         LWW.LWW_Element_Set'Read (Stream (F), S);
+         Close (F);
+         RunR.Check (not LWW.Contains (S, 42),
+                     "V1 back-compat: LWW remove, not contains 42");
+      end;
+
+      Put_Line ("[V1 Backward Compat] done.");
+   end Test_V1_Backward_Compat;
+
 begin
    Test_Stream_Serialization;
    Test_Byte_Boundary;
@@ -532,5 +658,6 @@ begin
    Test_Migration_PN_Counter;
    Test_Migration_LWW_Roundtrip;
    Test_Migrate_Header;
+   Test_V1_Backward_Compat;
 end Run;
 end Test_Serialization;

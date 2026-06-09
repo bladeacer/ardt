@@ -197,7 +197,7 @@ test-publish:
 	echo "=== end dry-run ==="
 
 demo:
-	alr exec -- gprbuild -Pdemo/demo.gpr
+	cd demo && alr build
 	stty -isig; ./demo/demo_life; stty isig
 
 clean:

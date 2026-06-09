@@ -1,0 +1,5 @@
+dependency:crdt=1.5.0=9de974494e45f3acf6a4cd6a5b26ea5b237335f0241ad3eb875c81a48a246cbc
+external:CRDT_DEMO_LIBRARY_TYPE=default
+external:LIBRARY_TYPE=default
+profile:crdt_demo=DEVELOPMENT
+switches:crdt_demo=-Og,-fdata-sections,-ffunction-sections,-g,-gnatVa,-gnatW8,-gnatw.X,-gnatwa,-gnaty-d,-gnaty3,-gnatyA,-gnatyB,-gnatyI,-gnatyO,-gnatyS,-gnatya,-gnatyb,-gnatyc,-gnatye,-gnatyf,-gnatyh,-gnatyi,-gnatyk,-gnatyl,-gnatym,-gnatyn,-gnatyp,-gnatyr,-gnatyt,-gnatyu,-gnatyx

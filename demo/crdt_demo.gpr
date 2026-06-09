@@ -1,6 +1,6 @@
-with "../crdt";
+with "crdt";
 
-project Demo is
+project Crdt_Demo is
 
    for Languages use ("Ada");
    for Source_Dirs use (".", "deps/vt100");
@@ -27,4 +27,4 @@ project Demo is
         ("-E");
    end Binder;
 
-end Demo;
+end Crdt_Demo;

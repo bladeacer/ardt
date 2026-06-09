@@ -63,6 +63,26 @@ all or vendor and version lock the library.
 
 > The latter is generally preferred especially for more serious use cases.
 
+### On Upgrading
+
+**Always read the changelog and migration guide before upgrading.**
+
+CRDT maintains V1→V2 wire-format compatibility since 1.4.0 (the read path
+auto-detects both formats), but there have been version-specific caveats:
+
+| If you are on | Upgrade path |
+|---|---|
+| **< 1.2.0** (V1 write only) | Jump to **>= 1.4.0**: V1 data is readable. Data written by 1.4.0+ uses V2 (LEB128). |
+| **1.2.0 - 1.3.0** (V2 write only) | Upgrade to **>= 1.4.0**: your V2 data is readable. No source changes needed. |
+| **>= 1.4.0** | Any later version is a drop-in replacement. |
+
+See the [changelogs](docs/changelogs/index.md) and
+[migration guide](docs/changelogs/crdt-1.4.0-migration.md) before updating
+your `alire.toml` dependency.
+
+> If you vendor the source, pin your `alire.toml` to a specific version and
+> test the upgrade in a staging environment before deploying.
+
 ### Roadmap
 
 - Ada SPARK Mode enabled for more of the codebase

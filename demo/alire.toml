@@ -1,0 +1,9 @@
+name = "crdt_demo"
+description = "Conway's Game of Life CRDT Demo"
+version = "0.1.0-dev"
+
+[[depends-on]]
+crdt = "*"
+
+[[pins]]
+crdt = { path = ".." }

@@ -1,14 +1,14 @@
 # V1 → V2 Protocol Migration
 
-_Applies to CRDT ≥ 1.4.0_
+_Applies to CRDT >= 1.4.0_
 
 ## Background
 
-CRDT ≤ 1.2.0 serialized all integer values (header fields, node IDs, lengths)
-using Ada's fixed 4-byte `Natural'Write` encoding (**V1 protocol**). Starting
-with 1.2.0, the library switched to variable-length LEB128 encoding (**V2
-protocol**) for space efficiency. CRDT 1.4.0 introduces a version-aware header
-that transparently supports both formats on the read path.
+CRDT 1.0.0 and 1.1.0 serialised all integer values (header fields, node IDs,
+lengths) using Ada's fixed 4-byte `Natural'Write` encoding (**V1 protocol**).
+Starting with 1.2.0, the library switched to variable-length LEB128 encoding
+(**V2 protocol**) for space efficiency — but V1 data could not yet be read.
+Starting with 1.4.0, the read path supports both formats via auto-detection.
 
 ## Auto-Detection
 
@@ -53,12 +53,12 @@ begin
 end;
 ```
 
-Upgrading from ≤1.2.0 to ≥1.4.0 requires **zero source-code changes**. The
+Upgrading from any prior version to >= 1.4.0 requires **zero source-code changes**. The
 same `Read_Header` / `Read_Natural` calls work unchanged.
 
 ## Writing V1 (Legacy Output)
 
-If some peers are still on CRDT ≤1.2.0 and cannot read V2, use the legacy
+If some peers are still on CRDT <= 1.1.0 and cannot read V2, use the legacy
 writer for backward compatibility:
 
 ```ada
@@ -69,7 +69,8 @@ begin
    Stream := Ada.Streams.Stream_IO.Stream (File);
 
    --  Write V1 header manually (binary discriminator + fixed-width fields)
-   Natural'Write (Stream, 2);      -- Total
+   Natural'Write (Stream, 2);      -- Protocol_Version = 2 (as Natural)
+   Natural'Write (Stream, Total);  -- Total
    Natural'Write (Stream, Count);  -- Count
 
    for I in 1 .. Count loop
@@ -81,7 +82,7 @@ begin
 end;
 ```
 
-> **Recommendation**: Upgrade all peers to ≥1.4.0 to avoid maintaining V1
+> **Recommendation**: Upgrade all peers to >= 1.4.0 to avoid maintaining V1
 > write paths. The library's read side will continue to support V1 data
 > indefinitely.
 
