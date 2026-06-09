@@ -50,9 +50,7 @@ Added wire-format compatibility tests for LEB128 round-trips.
 
 ## Proof Results
 
-| Metric | Before (1.1.0) | After (1.2.0) |
-|--------|----------------|----------------|
-| Total checks | N/A | N/A |
+No SPARK proof changes from 1.1.0. Proof results not tracked.
 
 ## Breaking Changes
 

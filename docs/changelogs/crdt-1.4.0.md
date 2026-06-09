@@ -66,7 +66,11 @@ See `docs/changelogs/crdt-1.4.0-migration.md` for a worked example.
 
 | Metric | Before (1.3.0) | After (1.4.0) |
 |--------|----------------|----------------|
-| Total checks | N/A | N/A |
+| Total checks | Not tracked | 112 |
+| Unproved | N/A | 0 |
+| Functional Contracts | N/A | 0 |
+| Assertions | N/A | 8 |
+| Loop Invariants | N/A | 4 |
 
 ## Breaking Changes
 

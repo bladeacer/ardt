@@ -64,6 +64,10 @@ Merge another set's state into this one.
 
 Check if an element is present.
 
+| Parameter | Description |
+|-----------|-------------|
+| `E` | Element to check. |
+
 **Returns:** True if element is in the set.
 
 #### function Snapshot

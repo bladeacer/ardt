@@ -432,19 +432,24 @@ procedure Demo_Life is
             S.Paused := not S.Paused;
          when 'r' | 'R' =>
             Reset_State (S);
-         when 'm' | 'M' =>
-            if S.Mode = Matrix then
-               S.Mode := Yjs_RGA;
-               Sync_Yjs_From_Matrix (S.N1);
-               Sync_Yjs_From_Matrix (S.N2);
-               Sync_Yjs_From_Matrix (S.N3);
-            else
-               S.Mode := Matrix;
-               Sync_Matrix_From_Yjs (S.N1);
-               Sync_Matrix_From_Yjs (S.N2);
-               Sync_Matrix_From_Yjs (S.N3);
-            end if;
-            VT100.Clear_Screen;
+          when 'm' | 'M' =>
+             if S.Mode = Matrix then
+                S.Mode := Yjs_RGA;
+                Sync_Yjs_From_Matrix (S.N1);
+                Sync_Yjs_From_Matrix (S.N2);
+                Sync_Yjs_From_Matrix (S.N3);
+             else
+                S.Mode := Matrix;
+                Sync_Matrix_From_Yjs (S.N1);
+                Sync_Matrix_From_Yjs (S.N2);
+                Sync_Matrix_From_Yjs (S.N3);
+             end if;
+             S.N1.Paused := False;
+             S.N2.Paused := False;
+             S.N3.Paused := False;
+             S.Paused := False;
+             S.Gen := 0;
+             VT100.Clear_Screen;
          when others => null;
       end case;
    end Handle_Input;

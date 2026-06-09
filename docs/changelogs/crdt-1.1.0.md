@@ -33,9 +33,7 @@ No API or wire-format changes from 1.0.0.
 
 ## Proof Results
 
-| Metric | Before (1.0.0) | After (1.1.0) |
-|--------|----------------|----------------|
-| Total checks | N/A | N/A |
+No SPARK proof changes from 1.0.0. Proof results not tracked.
 
 ## Breaking Changes
 

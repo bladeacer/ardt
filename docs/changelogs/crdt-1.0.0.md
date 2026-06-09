@@ -58,9 +58,8 @@ Initial release. No prior versions exist.
 
 ## Proof Results
 
-| Metric | Before | After (1.0.0) |
-|--------|--------|----------------|
-| Total checks | N/A | Partial |
+SPARK proof results were not tracked for this version. SPARK_Mode was Off on
+all package bodies; preconditions and loop invariants were absent.
 
 ## Breaking Changes
 

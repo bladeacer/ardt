@@ -38,9 +38,7 @@ Fixed `alire.toml` release format for community index.
 
 ## Proof Results
 
-| Metric | Before (1.2.0) | After (1.3.0) |
-|--------|----------------|----------------|
-| Total checks | N/A | N/A |
+No SPARK proof changes from 1.2.0. Proof results not tracked.
 
 ## Breaking Changes
 

@@ -134,7 +134,7 @@ package body Test_Serialization is
 
       --  Construct V1 wire format byte-by-byte.
       --  V1 layout: [Version:4][Total:4][Count:4]
-      --             then per-item [Node_Id:8][Len:4][Deleted:1][Content:Len×1]
+      --             then per-item [Node_Id:8][Len:4][Deleted:1][Content:Len x 1]
       declare
          subtype SEO is Stream_Element_Offset;
          Buf  : Stream_Element_Array (SEO'(1) .. 30);

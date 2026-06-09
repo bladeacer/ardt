@@ -14,6 +14,7 @@ component per DO-178C / ED-12C.
 | HLR | `HLR.md` | High-Level Requirements |
 | LLR | `LLR.md` | Low-Level Requirements (mapped to Ada packages) |
 | Trace | `TRACE.md` | Bidirectional traceability matrix (auto-verified by Makefile) |
+| Verification | `VERIFICATION.md` | SPARK proof results, test counts, artifact inventory |
 | Verification | `docs/api-docs/*.md` | Generated API documentation |
 | Verification | `obj/gnatprove/*.out` | SPARK proof results |
 | Verification | test output | Test harness results (`make run`) |
