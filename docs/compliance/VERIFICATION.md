@@ -6,30 +6,38 @@ _Generated: 2026-06-09_
 
 | Metric | Count |
 |--------|-------|
-| Total checks | 217 |
-| Proved | 175 (81%) |
+| Total checks | 244 |
+| Proved | 191 (78%) |
 | Justified | 5 (2%) |
-| Unproved | 0 |
+| Unproved | 10 (4%) |
 | Flow Dependencies | 9 |
-| Run-time Checks | 119 (114 proved, 5 justified) |
+| Run-time Checks | 143 (129 proved, 5 justified, 9 unproved) |
 | Assertions | 26 |
-| Functional Contracts | 35 |
+| Functional Contracts | 37 (36 proved, 1 unproved) |
 | Loop Invariants | 11 |
 | Termination | 25 |
 
 ## SPARK_Mode => Off Summary
 
-16 scoped occurrences, all justified:
+18 scoped occurrences, all justified:
 
 | Reason | Count | Units |
 |--------|-------|-------|
 | `Ada.Numerics.Discrete_Random` (RNG) | 4 | `CRDT.Core.New_Replica_Id`, `RNG` nested package |
 | `Ada.Calendar.Clock` (wall-clock) | 3 | `CRDT.HLC.Create`, `Tick`, `Recv` |
-| Stream I/O (`Root_Stream_Type'Class`) | 4 | Write/Read PN_Counter, LWW_Element_Set |
+| Stream I/O (`Root_Stream_Type'Class`) | 6 | Write/Read PN_Counter, LWW_Element_Set, LEB128 stream wrappers |
 | Non-SPARK dependency cascade | 1 | `CRDT.Sync.State_Based.Create` |
 | Complex data structures (access types) | 4 | Sequence engine bodies (RGA, Naive, Yjs, Fugue) |
 
-All packages with SPARK-compatible specs are annotated: `CRDT.Sync` (trivial type-only package) now included.
+All packages with SPARK-compatible specs are annotated: `CRDT.Sync` (trivial type-only package) and `CRDT.Core.LEB128` (buffer-based primitives) now included.
+
+### Unproved Checks Notes
+
+10 unproved checks (all medium-level) are in `CRDT.Core.LEB128.Decode`/`Encode`
+buffer-based primitives — overflow/range checks on 64-bit arithmetic that SPARK
+cannot resolve but are safe at runtime (bounded for-loops, buffer-size contracts).
+9 are run-time checks; 1 is a functional contract (`Index > Index'Old` postcondition).
+These match the pattern of existing justified overflow checks elsewhere.
 
 ## Test Results
 

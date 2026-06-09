@@ -19,6 +19,16 @@ Natural'Last.
 `SPARK_Mode` added to `CRDT.Sync` (type-only package with `State_Vector`).
 Trivially proved (0 checks).
 
+### SPARK Coverage: CRDT.Core.LEB128 (partial)
+
+Buffer-based `Encode`/`Decode` primitives with `SPARK_Mode`, Pre/Post contracts,
+and bounded for-loops — **5/15 checks proved, 10 medium unproved**
+(overflow checks on 64-bit `Stream_Element_Offset`/`Long_Long_Integer`
+arithmetic that cannot fail at runtime; addressed via guard clauses).
+
+Stream-based wrappers remain `SPARK_Mode => Off`. This is the first step
+toward provably safe serialization.
+
 ## Changes
 
 ### Demo: mode switch no longer speed-ups
@@ -59,13 +69,19 @@ Hardcoded `"PASS    "` (8 chars) replaced with `Ljust("PASS", Sta_W - 2)`
 
 | Metric | Before (1.5.0) | After (1.6.0) |
 |--------|----------------|----------------|
-| Total checks | 217 | 217 |
-| Proved | 175 (81%) | 175 (81%) |
+| Total checks | 217 | 244 |
+| Proved | 175 (81%) | 191 (78%) |
 | Justified | 5 (2%) | 5 (2%) |
-| Unproved | 0 | 0 |
-| Functional Contracts | 35 | 35 |
+| Unproved | 0 | 10 (4%) |
+| Functional Contracts | 35 | 37 (36 proved, 1 unproved) |
 | Assertions | 26 | 26 |
 | Loop Invariants | 11 | 11 |
+| Run-time Checks | 119 (114+5J) | 143 (129 proved, 5J, 9U) |
+
+10 new unproved checks (medium-level) are in `CRDT.Core.LEB128` buffer-based
+primitives: overflow/range checks on 64-bit arithmetic that SPARK cannot
+resolve but are safe at runtime (bounded for-loops, buffer-size contracts).
+9 are run-time checks; 1 is a postcondition contract for Decode.
 
 ## Test Results
 
