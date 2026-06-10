@@ -8,9 +8,3 @@ maintainers-logins = ["bladeacer"]
 licenses = "MIT"
 website = "https://github.com/bladeacer/ada_crdt"
 tags = ["crdt", "spark", "ada"]
-
-executables = ["test_crdt"]
-
-[[depends-on]]
-gnatprove = "^15.1.0"
-gnatdoc_bin = "^26.0.0"
